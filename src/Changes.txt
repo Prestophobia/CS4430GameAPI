@@ -1,0 +1,3 @@
+Updated SFML calls to SFML 2
+Removed test game feature
+Added package font due to SFML 2 requirements

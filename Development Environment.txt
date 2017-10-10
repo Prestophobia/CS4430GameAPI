@@ -1,0 +1,17 @@
+install C++ IDE (I use Eclipse)
+
+install MSYS2
+
+add [path to msys64]\mingw64\bin to system path (for development tools)
+add [path to msys64\mingw64\lib to system path (for development libraries)
+add [path to msys64]\usr\bin to system path (for command line functions on msys)
+add [path to msys64]\usr\include to system path (for some libraries)
+
+run "pacman -Syuu" until there are no more updates
+
+run "pacman -S mingw-w64-x86_64-gcc"
+run "pacman -S mingw-w64-x86_64-gdb"
+run "pacman -S make"
+run "pacman -S mingw-w64-x86_64-sfml"
+run "pacman -S mingw-w64-x86_64-sqlite3"
+run "pacman -S libsqlite-devel"
