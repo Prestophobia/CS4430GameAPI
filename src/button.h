@@ -11,7 +11,7 @@ public:
 	static const int& r_mseX;
 	static const int& r_mseY;
 	sf::Text label;
-	char labelPos; // l,r,c,t,b
+	char labelPos = 0; // l,r,c,t,b
 
 	int posX;
 	int posY;

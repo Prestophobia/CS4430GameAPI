@@ -76,7 +76,6 @@ bool testMode = false; // read checker positions from a file
 bool gameOn = false; // true once a game selection is made
 bool gameOver = false; // true once all checkers of one color are captured
 bool pause = false;
-bool takeScreenshot = false;
 
 // functions
 bool LoadImages(void);
@@ -183,18 +182,17 @@ int main(int argc, char *argv[]) {
 
 	if (window.isOpen()) {
 		do {
-			// frame logic
 			if (!pause && frClock.getElapsedTime().asSeconds() > frPeriod) {
 				frClock.restart();
 				gameLogic();
-			} // end of frame logic
 
-			// draw stuff
-			window.clear(sf::Color(0, 50, 100)); // Color bkgd
+				// draw stuff
+				window.clear(sf::Color(0, 50, 100)); // Color bkgd
 
-			gameDraw(window);
+				gameDraw(window);
 
-			window.display();
+				window.display();
+			}
 
 			sf::Event event;
 			while (window.pollEvent(event)) {
@@ -212,7 +210,7 @@ void EVENTcheck(sf::Event &event, sf::Window &window) {
 		window.close();
 		break;
 	case sf::Event::MouseButtonPressed:
-		if (event.mouseButton.button == sf::Mouse::Left) {
+		if (!pause && event.mouseButton.button == sf::Mouse::Left) {
 			if (!menuHitDown()) {
 				window.close(); // file I/O error
 			}
@@ -220,7 +218,7 @@ void EVENTcheck(sf::Event &event, sf::Window &window) {
 		}
 		break;
 	case sf::Event::MouseButtonReleased:
-		if (event.mouseButton.button == sf::Mouse::Left) {
+		if (!pause && event.mouseButton.button == sf::Mouse::Left) {
 			menuHitUp();
 			gameHitUp();
 		}
@@ -249,9 +247,6 @@ void EVENTcheck(sf::Event &event, sf::Window &window) {
 			break;
 		case sf::Keyboard::P:				// provides a play/pause function
 			pause = !pause;				// toggle state
-			break;
-		case sf::Keyboard::S:	// take a screenshot and save as screenshot.jpg
-			takeScreenshot = true;			// returns to false in gameDraw()
 			break;
 		default:
 			break;
@@ -1210,13 +1205,6 @@ void gameDraw(sf::RenderWindow& rApp) {
 	drawCheckers(rApp);
 	if (textFX)
 		rApp.draw(*p_FXmsg);
-
-// take a screenshot
-	if (takeScreenshot) {
-		takeScreenshot = false;
-		sf::Image Screen = rApp.capture();
-		Screen.saveToFile("screenshot.jpg");
-	}
 
 	return;
 }
