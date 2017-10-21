@@ -1,4 +1,3 @@
-// TODO find orignating link and put in link file
 #include <windows.h>
 #include <SFML/Graphics.hpp>
 
@@ -14,7 +13,7 @@
 #include "Path.h"
 #include "Font.h"
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+void EVENTcheck(sf::Event &event, sf::Window &window);
 HDC hdc;
 int mseX = 0, mseY = 0;
 int w_szX = 800, w_szY = 600;
@@ -154,54 +153,24 @@ float to_sf_string(sf::String& strArg, T x) // returns position of end of strArg
 	return strArg.getSize();
 }
 
-int APIENTRY WinMain(HINSTANCE hinst, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
-		int nCmdShow) {
-	HWND hwnd;
-	MSG lpmsg;
-	memset(&lpmsg, 0, sizeof(lpmsg));
-	WNDCLASSEX wc = { 0 };
-	static char szAppName[] = "Shell";
-
-	wc.cbSize = sizeof(WNDCLASSEX);
-	wc.lpszClassName = szAppName;
-	wc.hInstance = hinst;
-	wc.lpfnWndProc = WndProc;
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-	wc.lpszMenuName = 0;
-	wc.hbrBackground = reinterpret_cast<HBRUSH>(GetStockObject(WHITE_BRUSH));
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.style = CS_GLOBALCLASS;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	if (!RegisterClassEx(&wc))
-		return 0;
-
+int main(int argc, char *argv[]) {
 	// load images
 	if (!LoadImages())
 		return 0; // return error code!
 
-	// create the main window
-	hwnd =
-			CreateWindow(szAppName, "Checkers", WS_SYSMENU | WS_VISIBLE | WS_MINIMIZEBOX,
-					w_posX, w_posY, w_szX + 6, w_szY + 32, NULL, NULL, hinst, NULL);
-
-	// create one SFML view
-	DWORD Style = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS;
-	HWND View1 =
-			CreateWindow( "STATIC", NULL, Style, 0, 0, w_szX, w_szY, hwnd, NULL, hinst, NULL);
+	// create the SFML window
+	sf::RenderWindow window(sf::VideoMode(w_szX, w_szY), "Checkers");
+	window.setActive();
 
 	// local vars
-	sf::RenderWindow App(View1);
 	float frPeriod = 1.0f / 30.0f; // for 30 fps
 	sf::Clock frClock;
 	frClock.restart();
 
 	// INIT stuff
-	button::pWndw = &App;
-	dragDrop::pWndw = &App;
-	Path::pWndw = &App;
+	button::pWndw = &window;
+	dragDrop::pWndw = &window;
+	Path::pWndw = &window;
 	INITboard();
 	ALLOC_paths(); // dynamic allocation of legs to the deal paths
 	INITbuttons();
@@ -210,16 +179,10 @@ int APIENTRY WinMain(HINSTANCE hinst, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
 	wh_dealPath.inUse = false;
 	bk_dealPath.inUse = false;
 
-	ShowWindow(hwnd, nCmdShow);
-	UpdateWindow(hwnd);
+	window.setVerticalSyncEnabled(true); // default = false
 
-	App.setVerticalSyncEnabled(true); // default = false
-
-	while (lpmsg.message != WM_QUIT) {
-		if ( PeekMessage(&lpmsg, NULL, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&lpmsg);
-			DispatchMessage(&lpmsg);
-		} else {
+	if (window.isOpen()) {
+		do {
 			// frame logic
 			if (!pause && frClock.getElapsedTime().asSeconds() > frPeriod) {
 				frClock.restart();
@@ -227,91 +190,91 @@ int APIENTRY WinMain(HINSTANCE hinst, HINSTANCE hPrevInstance, LPSTR lpCmdLine,
 			} // end of frame logic
 
 			// draw stuff
-			App.clear(sf::Color(0, 50, 100)); // Color bkgd
+			window.clear(sf::Color(0, 50, 100)); // Color bkgd
 
-			gameDraw(App);
+			gameDraw(window);
 
-			App.display();
-		} // end else render
+			window.display();
+
+			sf::Event event;
+			while (window.pollEvent(event)) {
+				EVENTcheck(event, window);
+			}
+		} while (window.isOpen());
 	}
-	UnregisterClass(szAppName, wc.hInstance);
 
-	return (lpmsg.wParam);
-} // end of WinMain()
+	return 0;
+} // end of main
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	char ch = 'b'; // for keyboard input
-
-	switch (msg) {
-	case WM_DESTROY:
-		PostQuitMessage(0);
+void EVENTcheck(sf::Event &event, sf::Window &window) {
+	switch (event.type) {
+	case sf::Event::Closed:
+		window.close();
 		break;
-	case WM_LBUTTONDOWN:
-		if (!menuHitDown())
-			PostQuitMessage(0); // file I/O error
-
-		gameHitDown();
-
+	case sf::Event::MouseButtonPressed:
+		if (event.mouseButton.button == sf::Mouse::Left) {
+			if (!menuHitDown()) {
+				window.close(); // file I/O error
+			}
+			gameHitDown();
+		}
 		break;
-	case WM_LBUTTONUP:
-		menuHitUp();
-		gameHitUp();
-
+	case sf::Event::MouseButtonReleased:
+		if (event.mouseButton.button == sf::Mouse::Left) {
+			menuHitUp();
+			gameHitUp();
+		}
 		break;
-	case WM_MOUSEMOVE:
-		mseX = LOWORD(lParam);
-		mseY = HIWORD(lParam);
+	case sf::Event::MouseMoved:
+		mseX = event.mouseMove.x;
+		mseY = event.mouseMove.y;
 
 		// button mouseovers
 		newButt.mseOver();
 		savedButt.mseOver();
 
-		if (gameOn)
+		if (gameOn) {
 			saveGameButt.mseOver();
+		}
 
 		// dragDrop object move
 		chObj.drag();
 
 		break;
-	case WM_CHAR:
-		ch = (TCHAR) wParam;
-
-		ch = tolower(ch);
-		switch (ch) {
-		case VK_ESCAPE: // kill app via escape key
+	case sf::Event::KeyPressed:
+		switch (event.key.code) {
+		case sf::Keyboard::Escape: // kill app via escape key
 			//	Cleanup();
-			PostQuitMessage(0);
+			window.close();
 			break;
-		case 'p':				// provides a play/pause function
+		case sf::Keyboard::P:				// provides a play/pause function
 			pause = !pause;				// toggle state
 			break;
-		case 's':				// take a screenshot and save as screenshot.jpg
+		case sf::Keyboard::S:	// take a screenshot and save as screenshot.jpg
 			takeScreenshot = true;			// returns to false in gameDraw()
 			break;
-
 		default:
 			break;
 		}
-	default:
-		return ( DefWindowProc(hwnd, msg, wParam, lParam));
 		break;
-	}				//End Switch on msg.
-	return (0);
-}				//End CALLBACK.
+	default:
+		break;
+	}
+}
 
 bool LoadImages(void) {
-	// font
+// font
 	if (!font.loadFromFile("images/Enchanted Land.otf"))
 		return false;
 
-	// buttons
-	if (!buttImg1.loadFromFile("images/buttonsImageAlt.png"))// 33x22px - from Ultifinitus
+// buttons
+	if (!buttImg1.loadFromFile("images/buttonsImageAlt.png")) // 33x22px - from Ultifinitus
 		return false;
 	buttImg1.createMaskFromColor(sf::Color(0, 0, 0));
 	buttTex1.loadFromImage(buttImg1);
 	buttSprite1.setTexture(buttTex1);
 
-	// dragDrop objects
+// dragDrop objects
 	if (!wh_chImg.loadFromFile("images/white_checker.png"))		// 40 x 40 px
 		return false;
 	wh_chImg.createMaskFromColor(sf::Color(0, 0, 0));
@@ -336,7 +299,7 @@ bool LoadImages(void) {
 	bk_kingTex.loadFromImage(bk_kingImg);
 	bk_kSprite.setTexture(bk_kingTex);
 
-	// a checker board
+// a checker board
 	if (!boardTex.loadFromFile("images/checker_board.jpg"))		// 499 x 491 px
 		return false;
 	boardSprite.setTexture(boardTex);
@@ -363,14 +326,14 @@ void INITbuttons(void) {
 }
 
 void INITboard(void) {
-	// anchor locations
-	//  float sqrSzX = 51.75 so /2 = 26
-	//  float sqrSzY = 50.5 so /2 = 25
+// anchor locations
+//  float sqrSzX = 51.75 so /2 = 26
+//  float sqrSzY = 50.5 so /2 = 25
 
 	sqrSzX += 0.7f;    // tweaking values
 	sqrSzY += 0.7f;
 
-	// all 32 anchors on the board
+// all 32 anchors on the board
 	int x0 = ch_bdPosX + ch_bdOffX + 26;
 	int y0 = ch_bdPosY + ch_bdOffY + 25;
 	for (int i = 0; i < Nanchors; ++i) {
@@ -388,7 +351,7 @@ void INITboard(void) {
 bool INITcheckerPositions_NEW(void) {
 	int i = 0;    // for looping
 
-	// initial checker positions
+// initial checker positions
 	for (i = 0; i <= 11; ++i)
 		checkerPos[i] = 'w';
 
@@ -407,7 +370,7 @@ bool INITcheckerPositions_NEW(void) {
 bool INITcheckerPositions_SAVED(const char* fname) {
 	int i = 0;    // for looping
 
-	// initial checker positions
+// initial checker positions
 	for (i = 0; i < 32; ++i)
 		checkerPos[i] = 'n';
 
@@ -422,7 +385,7 @@ bool INITcheckerPositions_SAVED(const char* fname) {
 		fout.close();
 		infile = std::ifstream(fname);
 	}
-	// white checkers
+// white checkers
 	infile >> Nwh_reg >> Nwh_k >> Nbk_reg >> Nbk_k >> Turn;
 	for (i = 0; i < Nwh_reg; ++i) {
 		infile >> idx;
@@ -433,7 +396,7 @@ bool INITcheckerPositions_SAVED(const char* fname) {
 		checkerPos[idx] = 'W';
 	}
 
-	// black checkers
+// black checkers
 	for (i = 0; i < Nbk_reg; ++i) {
 		infile >> idx;
 		checkerPos[idx] = 'b';
@@ -515,7 +478,7 @@ bool saveGameToFile(const char* fname) {
 }
 
 void INITdragDrops(void) {
-	// call set_anchors() before assign_size()
+// call set_anchors() before assign_size()
 	chObj.set_anchors(anchorArr1, Nanchors, 0);    // currently Nanchors = 32
 	chObj.assign_Size(&wh_chSprite);
 
@@ -573,8 +536,8 @@ void INITtext(void) {
 void ALLOC_paths(void) {
 	int i = 0;    // for looping
 
-	// for the checker deal animation
-	// allocate and INIT Legs. The array of Leg*'s were allocated in the Path ctor
+// for the checker deal animation
+// allocate and INIT Legs. The array of Leg*'s were allocated in the Path ctor
 	for (i = 0; i < wh_dealPath.nLegs; ++i) {
 		wh_dealPath.ppLeg[i] = new linLeg;
 		wh_dealPath.ppSprite[i] = &wh_chSprite;
@@ -585,7 +548,7 @@ void ALLOC_paths(void) {
 		bk_dealPath.ppSprite[i] = &bk_chSprite;
 	}
 
-	// for the one-legged anis in the game ( capture, king split, "king me" )
+// for the one-legged anis in the game ( capture, king split, "king me" )
 	p_aniPathLeg = new linLeg; // used for both capture and kink split animations
 	*aniPath.ppLeg = p_aniPathLeg;
 
@@ -657,7 +620,7 @@ void INITpathLegs(void) {
 bool fillMoveList(int hm)    // called when a checker is grabbed for a move
 		{
 	Nmoves = 0;    // global
-	// locals
+// locals
 	bool isKing = checkerPos[hm] == 'W' || checkerPos[hm] == 'B';
 	char opCol = turn ? 'b' : 'w';
 	char opColK = turn ? 'B' : 'W';
@@ -771,7 +734,7 @@ bool fillMoveList(int hm)    // called when a checker is grabbed for a move
 		}    // end check for jumps
 	}
 
-	// check if any jump moves were found
+// check if any jump moves were found
 	for (int i = 0; i < Nmoves; ++i) {
 		//        for white                           for black
 		if ((moveIdxList[i] - hm > 5) || (moveIdxList[i] - hm < -5)) // jump found
@@ -783,7 +746,7 @@ bool fillMoveList(int hm)    // called when a checker is grabbed for a move
 
 bool didJump(int hm_0, int hm_f, int& jumpIdx) // returns true if a jump was made and assigns jumpIdx = space# jumped
 		{
-	//     moved up or down only 1 row
+//     moved up or down only 1 row
 	if ((hm_f - hm_0 >= -5) && (hm_f - hm_0 <= 5))
 		return false;    // no jump was made
 
@@ -854,7 +817,7 @@ int hitAnchor(bool Turn) // global turn not used as other value may be considere
 }
 
 void drawCheckers(sf::RenderWindow& rApp) {
-	// draw all checkers except the moving one
+// draw all checkers except the moving one
 	float hSz = chSz / 2;
 	int i = 0;    // for looping
 
@@ -934,7 +897,7 @@ void drawCheckers(sf::RenderWindow& rApp) {
 void gameCapture_SplitAniLogic(void) {
 	aniPath.move();
 
-	// checker capture animation
+// checker capture animation
 	if (animateCapt && !aniPath.inUse)    // capture ani just ended
 			{
 		animateCapt = false;
@@ -961,7 +924,7 @@ void gameCapture_SplitAniLogic(void) {
 		}
 	}
 
-	// captured king split animation terminal assigns. (trigger in code above)
+// captured king split animation terminal assigns. (trigger in code above)
 	if (animateSplit && !aniPath.inUse) {
 		animateSplit = false;
 		if (colorCapt == 'W')
@@ -973,7 +936,7 @@ void gameCapture_SplitAniLogic(void) {
 }
 
 void gameKingMeAniLogic(void) {
-	// "King me" animation trigger
+// "King me" animation trigger
 	if (justKinged && !aniPath.inUse) {
 		justKinged = false;
 		animateKing = true;
@@ -986,7 +949,7 @@ void gameKingMeAniLogic(void) {
 
 	kingMePath.move();
 
-	// "King me" animation termination
+// "King me" animation termination
 	if (animateKing && !kingMePath.inUse) {
 		animateKing = false;
 		if (*kingMePath.ppSprite == &wh_chSprite)
@@ -1071,7 +1034,7 @@ void gameHitDown(void) {
 		// normal treatment
 		idx = hitAnchor(turn);
 
-	// normal case
+// normal case
 	if (idx != -1)        // a valid anchor was hit
 			{
 		jumpMade = false;
@@ -1191,7 +1154,7 @@ void gameHitUp(void) {
 }        // end of gameHitUp()
 
 void gameLogic(void) {
-	// the checker deal animation
+// the checker deal animation
 	if (reset) {
 		wh_dealPath.move();
 		bk_dealPath.move();
@@ -1205,7 +1168,7 @@ void gameLogic(void) {
 	if ((animateCapt || animateSplit) && gameOn)
 		gameCapture_SplitAniLogic();
 
-	// test for end of game
+// test for end of game
 	if ((Nwh_capt == 12 || Nbk_capt == 12) && !gameOver) {
 		gameOver = true;
 		textFX = true;
@@ -1223,7 +1186,7 @@ void gameLogic(void) {
 	if (!gameOver)
 		gameKingMeAniLogic();
 
-	// textFX
+// textFX
 	if (textFX) {
 		if (textFXdelay > 1)
 			--textFXdelay;
@@ -1248,7 +1211,7 @@ void gameDraw(sf::RenderWindow& rApp) {
 	if (textFX)
 		rApp.draw(*p_FXmsg);
 
-	// take a screenshot
+// take a screenshot
 	if (takeScreenshot) {
 		takeScreenshot = false;
 		sf::Image Screen = rApp.capture();
