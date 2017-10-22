@@ -1,10 +1,10 @@
-#include <windows.h>
-#include <SFML/Graphics.hpp>
-
 #include <sstream>
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include <SFML/Graphics.hpp>
+#include "sqlite_orm/sqlite_orm.h"
 
 #include "buttonRectImage.h"
 #include "buttonRectDrawn.h"
@@ -12,9 +12,9 @@
 #include "linLeg.h"
 #include "Path.h"
 #include "Font.h"
+#include "database.h"
 
 void EVENTcheck(sf::Event &event, sf::Window &window);
-HDC hdc;
 int mseX = 0, mseY = 0;
 int w_szX = 800, w_szY = 600;
 int w_posX = 50, w_posY = 50;
@@ -363,113 +363,113 @@ bool INITcheckerPositions_NEW(void) {
 }
 
 bool INITcheckerPositions_SAVED(const char* fname) {
-	int i = 0;    // for looping
+	auto database = sqlite_orm::make_storage(fname,
+			sqlite_orm::make_table("Checker_Positions",
+					sqlite_orm::make_column("ID", &CheckerPos::id,
+							sqlite_orm::primary_key()),
+					sqlite_orm::make_column("Position", &CheckerPos::pos),
+					sqlite_orm::make_column("Color", &CheckerPos::color),
+					sqlite_orm::make_column("King", &CheckerPos::king)),
+			sqlite_orm::make_table("Game_State",
+					sqlite_orm::make_column("ID", &GameState::id,
+							sqlite_orm::primary_key()),
+					sqlite_orm::make_column("Turn", &GameState::turn)));
+	database.sync_schema(true);
 
-// initial checker positions
-	for (i = 0; i < 32; ++i)
+	database.begin_transaction();
+	auto gameState = database.get<GameState>(1);
+	auto databaseCheckerPos = database.get_all<CheckerPos>();
+	database.commit();
+
+	if (gameState.turn.compare("White") == 0) {
+		turn = true;
+	} else {
+		turn = false;
+	}
+
+	for (int i = 0; i < 32; ++i) {
 		checkerPos[i] = 'n';
-
-	std::ifstream infile(fname);
-	int Nwh_reg = 0, Nwh_k = 0;
-	int Nbk_reg = 0, Nbk_k = 0;
-	int Turn = 0;
-	int idx = 0;
-
-	if (!infile) {
-		std::ofstream fout(fname);
-		fout.close();
-		infile = std::ifstream(fname);
-	}
-// white checkers
-	infile >> Nwh_reg >> Nwh_k >> Nbk_reg >> Nbk_k >> Turn;
-	for (i = 0; i < Nwh_reg; ++i) {
-		infile >> idx;
-		checkerPos[idx] = 'w';
-	}
-	for (i = 0; i < Nwh_k; ++i) {
-		infile >> idx;
-		checkerPos[idx] = 'W';
 	}
 
-// black checkers
-	for (i = 0; i < Nbk_reg; ++i) {
-		infile >> idx;
-		checkerPos[idx] = 'b';
-	}
-	for (i = 0; i < Nbk_k; ++i) {
-		infile >> idx;
-		checkerPos[idx] = 'B';
+	int Nwh_reg = 0;
+	int Nwh_k = 0;
+	int Nbk_reg = 0;
+	int Nbk_k = 0;
+	for (auto checker : databaseCheckerPos) {
+		if (checker.color.compare("White") == 0) {
+			if (checker.king) {
+				Nwh_k++;
+				checkerPos[checker.pos] = 'W';
+			} else {
+				Nwh_reg++;
+				checkerPos[checker.pos] = 'w';
+			}
+		} else {
+			if (checker.king) {
+				Nbk_k++;
+				checkerPos[checker.pos] = 'B';
+			} else {
+				Nbk_reg++;
+				checkerPos[checker.pos] = 'b';
+			}
+		}
 	}
 
 	Nwh_capt = 12 - Nwh_reg - 2 * Nwh_k;
 	Nbk_capt = 12 - Nbk_reg - 2 * Nbk_k;
-	if (Turn)
-		turn = true;
-	else
-		turn = false;
 
-	infile.close();
 	return true;
 }
 
 bool saveGameToFile(const char* fname) {
-	int i = 0;
-	int Nwh_reg = 0, Nwh_k = 0;
-	int Nbk_reg = 0, Nbk_k = 0;
+	// Open the database file
+	auto database = sqlite_orm::make_storage(fname,
+			sqlite_orm::make_table("Checker_Positions",
+					sqlite_orm::make_column("ID", &CheckerPos::id,
+							sqlite_orm::primary_key()),
+					sqlite_orm::make_column("Position", &CheckerPos::pos),
+					sqlite_orm::make_column("Color", &CheckerPos::color),
+					sqlite_orm::make_column("King", &CheckerPos::king)),
+			sqlite_orm::make_table("Game_State",
+					sqlite_orm::make_column("ID", &GameState::id,
+							sqlite_orm::primary_key()),
+					sqlite_orm::make_column("Turn", &GameState::turn)));
+	database.sync_schema(false);
 
-	for (i = 0; i < 32; ++i)
+	// Clear out the old Checker_Positions data (if there is any)
+	database.drop_table("Checker_Positions");
+	database.drop_table("Game_State");
+	database.sync_schema(false);
+
+	// Write the positions into the database
+	database.begin_transaction();
+	for (int i = 0; i < 32; i++) {
 		switch (checkerPos[i]) {
 		case 'w':
-			++Nwh_reg;
+			database.insert(CheckerPos(-1, i, false, "White"));
 			break;
 		case 'W':
-			++Nwh_k;
+			database.insert(CheckerPos(-1, i, true, "White"));
 			break;
 		case 'b':
-			++Nbk_reg;
+			database.insert(CheckerPos(-1, i, false, "Black"));
 			break;
 		case 'B':
-			++Nbk_k;
+			database.insert(CheckerPos(-1, i, true, "Black"));
 			break;
 		default:
 			break;
 		}
-
-	std::ofstream fout(fname);
-	if (fout) {
-		// white checkers
-		fout << Nwh_reg << " " << Nwh_k << " " << Nbk_reg << " " << Nbk_k
-				<< " ";
-		if (turn)
-			fout << 1 << '\n';
-		else
-			fout << 0 << '\n';
-
-		for (i = 0; i < 32; ++i)
-			if (checkerPos[i] == 'w')
-				fout << i << " ";
-		fout << '\n';
-
-		for (i = 0; i < 32; ++i)
-			if (checkerPos[i] == 'W')
-				fout << i << " ";
-		fout << '\n';
-
-		for (i = 0; i < 32; ++i)
-			if (checkerPos[i] == 'b')
-				fout << i << " ";
-		fout << '\n';
-
-		for (i = 0; i < 32; ++i)
-			if (checkerPos[i] == 'B')
-				fout << i << " ";
-		fout << '\n';
-
-		fout.close();
-		return true;
 	}
 
-	return false;
+	if (turn) {
+		database.insert(GameState(1, "White"));
+	} else {
+		database.insert(GameState(1, "Black"));
+	}
+	database.commit();
+
+	return true;
 }
 
 void INITdragDrops(void) {
@@ -962,7 +962,7 @@ bool menuHitDown(void)    // returns false if file I/O error
 
 	if (gameOn)
 		if (saveGameButt.hit_dn()) {
-			if (!saveGameToFile("save.chk"))
+			if (!saveGameToFile("save.db"))
 				return false;
 		}
 	if (newButt.hit_dn()) {
@@ -971,7 +971,7 @@ bool menuHitDown(void)    // returns false if file I/O error
 	}
 	if (savedButt.hit_dn()) {
 		init_game = true;
-		if (!INITcheckerPositions_SAVED("save.chk"))
+		if (!INITcheckerPositions_SAVED("save.db"))
 			return false;
 	}
 
