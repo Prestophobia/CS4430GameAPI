@@ -12,15 +12,14 @@
 
 class CheckerPos {
 public:
-	int id = -1;
-	int pos = 0;
+	int pos = -1;
 	bool king = false;
 	std::string color;
 
 	CheckerPos() {
 	}
-	CheckerPos(int id, int pos, bool king, std::string color) :
-			id(id), pos(pos), king(king), color(color) {
+	CheckerPos(int pos, bool king, std::string color) :
+			pos(pos), king(king), color(color) {
 	}
 };
 
@@ -35,6 +34,21 @@ public:
 			id(id), turn(turn) {
 	}
 	;
+};
+
+class CheckerRecord {
+public:
+	int id = -1;
+	int pos = 0;
+	bool king = false;
+	std::string color;
+	double time = 0;
+
+	CheckerRecord() {
+	}
+	CheckerRecord(int id, int pos, bool king, std::string color, double time) :
+			id(id), pos(pos), king(king), color(color), time(time) {
+	}
 };
 
 #endif /* DATABASE_H_ */

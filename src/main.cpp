@@ -48,12 +48,31 @@ sf::Sprite bk_kSprite;
 sf::Image bk_kingImg;
 sf::Texture bk_kingTex;
 
+// database file
+auto database = sqlite_orm::make_storage(":memory:",
+		sqlite_orm::make_table("Checker_Positions",
+				sqlite_orm::make_column("Position", &CheckerPos::pos,
+						sqlite_orm::primary_key()),
+				sqlite_orm::make_column("Color", &CheckerPos::color),
+				sqlite_orm::make_column("King", &CheckerPos::king)),
+		sqlite_orm::make_table("Game_State",
+				sqlite_orm::make_column("ID", &GameState::id,
+						sqlite_orm::primary_key()),
+				sqlite_orm::make_column("Turn", &GameState::turn)),
+		sqlite_orm::make_table("Checker_Record",
+				sqlite_orm::make_column("ID", &CheckerRecord::id,
+						sqlite_orm::primary_key()),
+				sqlite_orm::make_column("Position", &CheckerRecord::pos),
+				sqlite_orm::make_column("Color", &CheckerRecord::color),
+				sqlite_orm::make_column("King", &CheckerRecord::king),
+				sqlite_orm::make_column("Time", &CheckerRecord::time)));
+
 dragDropRect chObj(200, 200, NULL); // the user moved checker
 
 // a checker board
 const int Nanchors = 32; // use for checker board
 std::pair<int, int> anchorArr1[Nanchors]; // anchor locations for dragDrop objects
-char checkerPos[32]; // 'b'=black, 'w'=white, 'n'=none (open square)
+//char checkerPos[32]; // 'b'=black, 'w'=white, 'n'=none (open square)
 
 int Nmoves = 5; // use for legal move anchor list
 int moveIdxList[5]; // anchor indexes for legal moves
@@ -82,10 +101,12 @@ bool LoadImages(void);
 void INITbuttons(void);
 void INITboard(void);
 bool INITcheckerPositions_NEW(void); // for a new game
-bool INITcheckerPositions_SAVED(const char* fname); // returns false on bad file read attempt
+bool INITcheckerPositions_SAVED(); // returns false on bad file read attempt
 void INITdragDrops(void);
 void INITtext(void); // check
-bool saveGameToFile(const char* fname);
+bool saveGameToFile();
+void saveDatabase(std::string saveFileName, void (*progressFunction)(int, int));
+void loadDatabase(std::string saveFileName, void (*progressFunction)(int, int));
 void drawCheckers(sf::RenderWindow& rApp);
 
 void gameLogic(void);
@@ -153,52 +174,60 @@ float to_sf_string(sf::String& strArg, T x) // returns position of end of strArg
 }
 
 int main(int argc, char *argv[]) {
-	// load images
-	if (!LoadImages())
-		return 0; // return error code!
+	try {
+		// load images
+		if (!LoadImages()) {
+			return 0; // return error code!
+		}
 
-	// create the SFML window
-	sf::RenderWindow window(sf::VideoMode(w_szX, w_szY), "Checkers");
-	window.setActive();
+		// Connect database
+		database.sync_schema(true);
 
-	// local vars
-	float frPeriod = 1.0f / 30.0f; // for 30 fps
-	sf::Clock frClock;
-	frClock.restart();
+		// create the SFML window
+		sf::RenderWindow window(sf::VideoMode(w_szX, w_szY), "Checkers");
+		window.setActive();
 
-	// INIT stuff
-	button::pWndw = &window;
-	dragDrop::pWndw = &window;
-	Path::pWndw = &window;
-	INITboard();
-	ALLOC_paths(); // dynamic allocation of legs to the deal paths
-	INITbuttons();
-	INITtext();
-	INITdragDrops();
-	wh_dealPath.inUse = false;
-	bk_dealPath.inUse = false;
+		// local vars
+		float frPeriod = 1.0f / 30.0f; // for 30 fps
+		sf::Clock frClock;
+		frClock.restart();
 
-	window.setVerticalSyncEnabled(true); // default = false
+		// INIT stuff
+		button::pWndw = &window;
+		dragDrop::pWndw = &window;
+		Path::pWndw = &window;
+		INITboard();
+		ALLOC_paths(); // dynamic allocation of legs to the deal paths
+		INITbuttons();
+		INITtext();
+		INITdragDrops();
+		wh_dealPath.inUse = false;
+		bk_dealPath.inUse = false;
 
-	if (window.isOpen()) {
-		do {
-			if (!pause && frClock.getElapsedTime().asSeconds() > frPeriod) {
-				frClock.restart();
-				gameLogic();
+		window.setVerticalSyncEnabled(true); // default = false
 
-				// draw stuff
-				window.clear(sf::Color(0, 50, 100)); // Color bkgd
+		if (window.isOpen()) {
+			do {
+				if (!pause && frClock.getElapsedTime().asSeconds() > frPeriod) {
+					frClock.restart();
+					gameLogic();
 
-				gameDraw(window);
+					// draw stuff
+					window.clear(sf::Color(0, 50, 100)); // Color bkgd
 
-				window.display();
-			}
+					gameDraw(window);
 
-			sf::Event event;
-			while (window.pollEvent(event)) {
-				EVENTcheck(event, window);
-			}
-		} while (window.isOpen());
+					window.display();
+				}
+
+				sf::Event event;
+				while (window.pollEvent(event)) {
+					EVENTcheck(event, window);
+				}
+			} while (window.isOpen());
+		}
+	} catch (std::exception &e) {
+		perror(e.what());
 	}
 
 	return 0;
@@ -245,8 +274,8 @@ void EVENTcheck(sf::Event &event, sf::Window &window) {
 			//	Cleanup();
 			window.close();
 			break;
-		case sf::Keyboard::P:				// provides a play/pause function
-			pause = !pause;				// toggle state
+		case sf::Keyboard::P:			// provides a play/pause function
+			pause = !pause;			// toggle state
 			break;
 		default:
 			break;
@@ -263,7 +292,7 @@ bool LoadImages(void) {
 		return false;
 
 // buttons
-	if (!buttImg1.loadFromFile("images/buttonsImageAlt.png")) // 33x22px - from Ultifinitus
+	if (!buttImg1.loadFromFile("images/buttonsImageAlt.png"))// 33x22px - from Ultifinitus
 		return false;
 	buttImg1.createMaskFromColor(sf::Color(0, 0, 0));
 	buttTex1.loadFromImage(buttImg1);
@@ -325,7 +354,7 @@ void INITboard(void) {
 //  float sqrSzX = 51.75 so /2 = 26
 //  float sqrSzY = 50.5 so /2 = 25
 
-	sqrSzX += 0.7f;    // tweaking values
+	sqrSzX += 0.7f;			// tweaking values
 	sqrSzY += 0.7f;
 
 // all 32 anchors on the board
@@ -343,74 +372,71 @@ void INITboard(void) {
 	return;
 }
 
+bool saveGameToFile() {
+	return true;
+}
+
 bool INITcheckerPositions_NEW(void) {
-	int i = 0;    // for looping
-
 // initial checker positions
-	for (i = 0; i <= 11; ++i)
-		checkerPos[i] = 'w';
+	database.drop_table("Checker_Positions");
+	database.drop_table("Game_State");
+	database.drop_table("Checker_Record");
+	database.sync_schema();
+	try {
+		for (int i = 0; i < 12; ++i) {
+			database.insert(CheckerPos(i, false, "White"));
+		}
 
-	for (i = 12; i <= 19; ++i)
-		checkerPos[i] = 'n';
+		for (int i = 12; i < 20; i++) {
+			database.insert(CheckerPos(i, false, ""));
+		}
 
-	for (i = 20; i <= 31; ++i)
-		checkerPos[i] = 'b';
+		for (int i = 20; i < 32; ++i) {
+			database.insert(CheckerPos(i, false, "Black"));
+		}
+	} catch (std::exception &e) {
+		perror("INITcheckerPositions_NEW: ");
+		perror(e.what());
+	}
 
 	turn = true;
+	database.insert(GameState(1, "White"));
 	Nwh_capt = Nbk_capt = 0;
 
 	return true;
 }
 
-bool INITcheckerPositions_SAVED(const char* fname) {
-	auto database = sqlite_orm::make_storage(fname,
-			sqlite_orm::make_table("Checker_Positions",
-					sqlite_orm::make_column("ID", &CheckerPos::id,
-							sqlite_orm::primary_key()),
-					sqlite_orm::make_column("Position", &CheckerPos::pos),
-					sqlite_orm::make_column("Color", &CheckerPos::color),
-					sqlite_orm::make_column("King", &CheckerPos::king)),
-			sqlite_orm::make_table("Game_State",
-					sqlite_orm::make_column("ID", &GameState::id,
-							sqlite_orm::primary_key()),
-					sqlite_orm::make_column("Turn", &GameState::turn)));
-	database.sync_schema(true);
-
-	database.begin_transaction();
-	auto gameState = database.get<GameState>(1);
-	auto databaseCheckerPos = database.get_all<CheckerPos>();
-	database.commit();
-
-	if (gameState.turn.compare("White") == 0) {
-		turn = true;
-	} else {
-		turn = false;
-	}
-
-	for (int i = 0; i < 32; ++i) {
-		checkerPos[i] = 'n';
+bool INITcheckerPositions_SAVED() {
+	loadDatabase("save.db", 0);
+	GameState currentState;
+	try {
+		currentState = database.get<GameState>(1);
+		if (currentState.turn == "White") {
+			turn = true;
+		} else if (currentState.turn == "Black") {
+			turn = false;
+		}
+	} catch (std::exception &e) {
+		perror("INITcheckerPositions_SAVED: ");
+		perror(e.what());
 	}
 
 	int Nwh_reg = 0;
 	int Nwh_k = 0;
 	int Nbk_reg = 0;
 	int Nbk_k = 0;
-	for (auto checker : databaseCheckerPos) {
-		if (checker.color.compare("White") == 0) {
+	for (auto checker : database.get_all<CheckerPos>()) {
+		if (checker.color == "White") {
 			if (checker.king) {
 				Nwh_k++;
-				checkerPos[checker.pos] = 'W';
 			} else {
 				Nwh_reg++;
-				checkerPos[checker.pos] = 'w';
 			}
 		} else {
 			if (checker.king) {
 				Nbk_k++;
-				checkerPos[checker.pos] = 'B';
 			} else {
 				Nbk_reg++;
-				checkerPos[checker.pos] = 'b';
 			}
 		}
 	}
@@ -421,55 +447,105 @@ bool INITcheckerPositions_SAVED(const char* fname) {
 	return true;
 }
 
-bool saveGameToFile(const char* fname) {
-	// Open the database file
-	auto database = sqlite_orm::make_storage(fname,
-			sqlite_orm::make_table("Checker_Positions",
-					sqlite_orm::make_column("ID", &CheckerPos::id,
-							sqlite_orm::primary_key()),
-					sqlite_orm::make_column("Position", &CheckerPos::pos),
-					sqlite_orm::make_column("Color", &CheckerPos::color),
-					sqlite_orm::make_column("King", &CheckerPos::king)),
-			sqlite_orm::make_table("Game_State",
-					sqlite_orm::make_column("ID", &GameState::id,
-							sqlite_orm::primary_key()),
-					sqlite_orm::make_column("Turn", &GameState::turn)));
-	database.sync_schema(false);
+/*
+ * Backs up the database 5 pages at a time to saveFile.  Database is still usable during process.
+ * progressFunction (numPagesLeft, numTotalPages)
+ */
+void saveDatabase(std::string saveFileName,
+		void (*progressFunction)(int, int)) {
+	int sqliteReturnCode; /* Function return code */
+	sqlite3 *saveFilePtr; /* Database connection opened on saveFile */
+	sqlite3_backup *sqliteBackupObject; /* Backup handle used to copy data */
+	sqlite3 *originalDatabase = database.getConnection()->get_db();
 
-	// Clear out the old Checker_Positions data (if there is any)
-	database.drop_table("Checker_Positions");
-	database.drop_table("Game_State");
-	database.sync_schema(false);
+	/* Open the database file identified by saveFile. */
+	sqliteReturnCode = sqlite3_open(saveFileName.c_str(), &saveFilePtr);
+	if (sqliteReturnCode == SQLITE_OK) {
 
-	// Write the positions into the database
-	database.begin_transaction();
-	for (int i = 0; i < 32; i++) {
-		switch (checkerPos[i]) {
-		case 'w':
-			database.insert(CheckerPos(-1, i, false, "White"));
-			break;
-		case 'W':
-			database.insert(CheckerPos(-1, i, true, "White"));
-			break;
-		case 'b':
-			database.insert(CheckerPos(-1, i, false, "Black"));
-			break;
-		case 'B':
-			database.insert(CheckerPos(-1, i, true, "Black"));
-			break;
-		default:
-			break;
+		/* Open the sqlite3_backup object used to accomplish the transfer */
+		sqliteBackupObject = sqlite3_backup_init(saveFilePtr, "main",
+				originalDatabase, "main");
+		if (sqliteBackupObject) {
+
+			/* Each iteration of this loop copies 5 database pages from database
+			 ** memoryDBPtr to the backup database. If the return value of backup_step()
+			 ** indicates that there are still further pages to copy, sleep for
+			 ** 250 ms before repeating. */
+			do {
+				sqliteReturnCode = sqlite3_backup_step(sqliteBackupObject, 5);
+				if (progressFunction != 0) {
+					progressFunction(
+							sqlite3_backup_remaining(sqliteBackupObject),
+							sqlite3_backup_pagecount(sqliteBackupObject));
+				}
+				if (sqliteReturnCode == SQLITE_OK
+						|| sqliteReturnCode == SQLITE_BUSY
+						|| sqliteReturnCode == SQLITE_LOCKED) {
+					sqlite3_sleep(250);
+				}
+			} while (sqliteReturnCode == SQLITE_OK
+					|| sqliteReturnCode == SQLITE_BUSY
+					|| sqliteReturnCode == SQLITE_LOCKED);
+
+			(void) sqlite3_backup_finish(sqliteBackupObject);
 		}
+		sqliteReturnCode = sqlite3_errcode(saveFilePtr);
 	}
 
-	if (turn) {
-		database.insert(GameState(1, "White"));
-	} else {
-		database.insert(GameState(1, "Black"));
-	}
-	database.commit();
+	/* Close the database connection opened on database file saveFile
+	 ** and return the result of this function. */
+	(void) sqlite3_close(saveFilePtr);
+}
 
-	return true;
+/*
+ * Loads the database 5 pages at a time to memory.  Database is still usable during process.
+ * progressFunction (numPagesLeft, numTotalPages)
+ */
+void loadDatabase(std::string saveFileName,
+		void (*progressFunction)(int, int)) {
+	int sqliteReturnCode; /* Function return code */
+	sqlite3 *saveFilePtr; /* Database connection opened on saveFile */
+	sqlite3_backup *sqliteBackupObject; /* Backup handle used to copy data */
+	sqlite3 *originalDatabase = database.getConnection()->get_db();
+
+	/* Open the database file identified by saveFile. */
+	sqliteReturnCode = sqlite3_open(saveFileName.c_str(), &saveFilePtr);
+	if (sqliteReturnCode == SQLITE_OK) {
+
+		/* Open the sqlite3_backup object used to accomplish the transfer */
+		sqliteBackupObject = sqlite3_backup_init(originalDatabase, "main",
+				saveFilePtr, "main");
+		if (sqliteBackupObject) {
+
+			/* Each iteration of this loop copies 5 database pages from database
+			 ** memoryDBPtr to the backup database. If the return value of backup_step()
+			 ** indicates that there are still further pages to copy, sleep for
+			 ** 250 ms before repeating. */
+			do {
+				sqliteReturnCode = sqlite3_backup_step(sqliteBackupObject, 5);
+				if (progressFunction != 0) {
+					progressFunction(
+							sqlite3_backup_remaining(sqliteBackupObject),
+							sqlite3_backup_pagecount(sqliteBackupObject));
+				}
+				if (sqliteReturnCode == SQLITE_OK
+						|| sqliteReturnCode == SQLITE_BUSY
+						|| sqliteReturnCode == SQLITE_LOCKED) {
+					sqlite3_sleep(250);
+				}
+			} while (sqliteReturnCode == SQLITE_OK
+					|| sqliteReturnCode == SQLITE_BUSY
+					|| sqliteReturnCode == SQLITE_LOCKED);
+
+			(void) sqlite3_backup_finish(sqliteBackupObject);
+		}
+		sqliteReturnCode = sqlite3_errcode(saveFilePtr);
+	}
+
+	/* Close the database connection opened on database file saveFile
+	 ** and return the result of this function. */
+	(void) sqlite3_close(saveFilePtr);
+	database.sync_schema(true);
 }
 
 void INITdragDrops(void) {
@@ -561,35 +637,39 @@ void INITpathLegs(void) {
 	float hSz = chSz / 2.0f;
 
 	for (i = 0; i < 32; ++i) {
-		switch (checkerPos[i]) {
-		case 'w':
-			wh_dealPath.ppLeg[Nwh_ch]->INIT(400.0f - hSz, -20.0f - hSz,
-					static_cast<float>(anchorArr1[i].first) - hSz,
-					static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-			wh_dealPath.ppSprite[Nwh_ch++] = &wh_chSprite;
-			break;
-		case 'W':
-			wh_dealPath.ppLeg[Nwh_ch]->INIT(400.0f - hSz, -20.0f - hSz,
-					static_cast<float>(anchorArr1[i].first) - hSz,
-					static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-			wh_dealPath.ppSprite[Nwh_ch++] = &wh_kSprite;
-			++Nwh_k;
-			break;
-		case 'b':
-			bk_dealPath.ppLeg[Nbk_ch]->INIT(400.0f - hSz, 620.0f - hSz,
-					static_cast<float>(anchorArr1[i].first) - hSz,
-					static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-			bk_dealPath.ppSprite[Nbk_ch++] = &bk_chSprite;
-			break;
-		case 'B':
-			bk_dealPath.ppLeg[Nbk_ch]->INIT(400.0f - hSz, 620.0f - hSz,
-					static_cast<float>(anchorArr1[i].first) - hSz,
-					static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-			bk_dealPath.ppSprite[Nbk_ch++] = &bk_kSprite;
-			++Nbk_k;
-			break;
-		default:
-			break;
+		CheckerPos currentCheckerPos;
+		try {
+			currentCheckerPos = database.get<CheckerPos>(i + 1);
+		} catch (std::exception &e) {
+			perror("INITpathLegs: ");
+			perror(e.what());
+		}
+		if (currentCheckerPos.color == "White") {
+			if (!currentCheckerPos.king) {
+				wh_dealPath.ppLeg[Nwh_ch]->INIT(400.0f - hSz, -20.0f - hSz,
+						static_cast<float>(anchorArr1[i].first) - hSz,
+						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
+				wh_dealPath.ppSprite[Nwh_ch++] = &wh_chSprite;
+			} else {
+				wh_dealPath.ppLeg[Nwh_ch]->INIT(400.0f - hSz, -20.0f - hSz,
+						static_cast<float>(anchorArr1[i].first) - hSz,
+						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
+				wh_dealPath.ppSprite[Nwh_ch++] = &wh_kSprite;
+				++Nwh_k;
+			}
+		} else if (currentCheckerPos.color == "Black") {
+			if (!currentCheckerPos.king) {
+				bk_dealPath.ppLeg[Nbk_ch]->INIT(400.0f - hSz, 620.0f - hSz,
+						static_cast<float>(anchorArr1[i].first) - hSz,
+						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
+				bk_dealPath.ppSprite[Nbk_ch++] = &bk_chSprite;
+			} else {
+				bk_dealPath.ppLeg[Nbk_ch]->INIT(400.0f - hSz, 620.0f - hSz,
+						static_cast<float>(anchorArr1[i].first) - hSz,
+						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
+				bk_dealPath.ppSprite[Nbk_ch++] = &bk_kSprite;
+				++Nbk_k;
+			}
 		}
 	}
 
@@ -616,117 +696,218 @@ bool fillMoveList(int hm)    // called when a checker is grabbed for a move
 		{
 	Nmoves = 0;    // global
 // locals
-	bool isKing = checkerPos[hm] == 'W' || checkerPos[hm] == 'B';
-	char opCol = turn ? 'b' : 'w';
-	char opColK = turn ? 'B' : 'W';
-
-	if (turn || isKing)    // white or king
-			{
-//        if( hm < 28 )// not in bottom row
-		if (hm < 28 && !jumpMade)    // not in bottom row
-				{
-			if (hm % 8 == 3 || hm % 8 == 4)    // is edge position
-					{
-				if (checkerPos[hm + 4] == 'n')
-					moveIdxList[Nmoves++] = hm + 4;
-			} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5 )
-					{
-				if (checkerPos[hm + 3] == 'n')
-					moveIdxList[Nmoves++] = hm + 3;
-				if (checkerPos[hm + 4] == 'n')
-					moveIdxList[Nmoves++] = hm + 4;
-			} else    // even row ( 0, 2, 4, 6 )
-			{
-				if (checkerPos[hm + 4] == 'n')
-					moveIdxList[Nmoves++] = hm + 4;
-				if (checkerPos[hm + 5] == 'n')
-					moveIdxList[Nmoves++] = hm + 5;
-			}
-		}
-		if (hm < 24)    // check for jumps
-				{
-			if (hm % 8 == 3)    // on right edge
-					{
-				if ((checkerPos[hm + 4] == opCol || checkerPos[hm + 4] == opColK)
-						&& checkerPos[hm + 7] == 'n') // a jump over hm+4 to hm+7 can be made
-					moveIdxList[Nmoves++] = hm + 7;
-			} else if (hm % 8 == 4)    // on left edge
-					{
-				if ((checkerPos[hm + 4] == opCol || checkerPos[hm + 4] == opColK)
-						&& checkerPos[hm + 9] == 'n') // a jump over hm+4 to hm+7 can be made
-					moveIdxList[Nmoves++] = hm + 9;
-			} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5 )
-					{
-				if ((checkerPos[hm + 3] == opCol || checkerPos[hm + 3] == opColK)
-						&& checkerPos[hm + 7] == 'n')
-					moveIdxList[Nmoves++] = hm + 7;
-				if ((checkerPos[hm + 4] == opCol || checkerPos[hm + 4] == opColK)
-						&& checkerPos[hm + 9] == 'n')
-					moveIdxList[Nmoves++] = hm + 9;
-			} else    // even row ( 0, 2, 4 )
-			{
-				if ((checkerPos[hm + 4] == opCol || checkerPos[hm + 4] == opColK)
-						&& checkerPos[hm + 7] == 'n')
-					moveIdxList[Nmoves++] = hm + 7;
-				if ((checkerPos[hm + 5] == opCol || checkerPos[hm + 5] == opColK)
-						&& checkerPos[hm + 9] == 'n')
-					moveIdxList[Nmoves++] = hm + 9;
-			}
-		}    // end check for jumps
+	CheckerPos currentCheckerPos;
+	try {
+		currentCheckerPos = database.get<CheckerPos>(hm + 1);
+	} catch (std::exception &e) {
+		perror("fillMoveList: ");
+		perror(e.what());
 	}
-	if (!turn || isKing)    // black or king
-			{
-		//     if( hm >3 )// not in top row
-		if (hm > 3 && !jumpMade)    // not in top row
-				{
-			if (hm % 8 == 3 || hm % 8 == 4)    // is edge position
+	if (currentCheckerPos.color != "") {
+		std::string opCol = turn ? "Black" : "White";
+		try {
+			if (turn || currentCheckerPos.king)    // white or king
 					{
-				if (checkerPos[hm - 4] == 'n')
-					moveIdxList[Nmoves++] = hm - 4;
-			} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5, 7 )
+//        if( hm < 28 )// not in bottom row
+				if (hm < 28 && !jumpMade)    // not in bottom row
+						{
+					if (hm % 8 == 3 || hm % 8 == 4)    // is edge position
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						if (checkCheckerPos4.color == "") {
+							moveIdxList[Nmoves++] = hm + 4;
+						}
+					} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5 )
+							{
+						auto checkCheckerPos3 = database.get<CheckerPos>(
+								hm + 1 + 3);
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						if (checkCheckerPos3.color == "") {
+							moveIdxList[Nmoves++] = hm + 3;
+						}
+						if (checkCheckerPos4.color == "") {
+							moveIdxList[Nmoves++] = hm + 4;
+						}
+					} else    // even row ( 0, 2, 4, 6 )
 					{
-				if (checkerPos[hm - 4] == 'n')
-					moveIdxList[Nmoves++] = hm - 4;
-				if (checkerPos[hm - 5] == 'n')
-					moveIdxList[Nmoves++] = hm - 5;
-			} else    // even row ( 2, 4, 6 )
-			{
-				if (checkerPos[hm - 3] == 'n')
-					moveIdxList[Nmoves++] = hm - 3;
-				if (checkerPos[hm - 4] == 'n')
-					moveIdxList[Nmoves++] = hm - 4;
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						auto checkCheckerPos5 = database.get<CheckerPos>(
+								hm + 1 + 5);
+						if (checkCheckerPos4.color == "") {
+							moveIdxList[Nmoves++] = hm + 4;
+						}
+						if (checkCheckerPos5.color == "") {
+							moveIdxList[Nmoves++] = hm + 5;
+						}
+					}
+				}
+				if (hm < 24)    // check for jumps
+						{
+					if (hm % 8 == 3)    // on right edge
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						auto checkCheckerPos7 = database.get<CheckerPos>(
+								hm + 1 + 7);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos7.color == "") { // a jump over hm+4 to hm+7 can be made
+							moveIdxList[Nmoves++] = hm + 7;
+						}
+					} else if (hm % 8 == 4)    // on left edge
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						auto checkCheckerPos9 = database.get<CheckerPos>(
+								hm + 1 + 9);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos9.color == "") { // a jump over hm+4 to hm+7 can be made
+							moveIdxList[Nmoves++] = hm + 9;
+						}
+					} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5 )
+							{
+						auto checkCheckerPos3 = database.get<CheckerPos>(
+								hm + 1 + 3);
+						auto checkCheckerPos7 = database.get<CheckerPos>(
+								hm + 1 + 7);
+						if (checkCheckerPos3.color == opCol
+								&& checkCheckerPos7.color == "") {
+							moveIdxList[Nmoves++] = hm + 7;
+						}
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						auto checkCheckerPos9 = database.get<CheckerPos>(
+								hm + 1 + 9);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos9.color == "") {
+							moveIdxList[Nmoves++] = hm + 9;
+						}
+					} else    // even row ( 0, 2, 4 )
+					{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 + 4);
+						auto checkCheckerPos7 = database.get<CheckerPos>(
+								hm + 1 + 7);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos7.color == "") {
+							moveIdxList[Nmoves++] = hm + 7;
+						}
+						auto checkCheckerPos5 = database.get<CheckerPos>(
+								hm + 1 + 5);
+						auto checkCheckerPos9 = database.get<CheckerPos>(
+								hm + 1 + 9);
+						if (checkCheckerPos5.color == opCol
+								&& checkCheckerPos9.color == "") {
+							moveIdxList[Nmoves++] = hm + 9;
+						}
+					}
+				}    // end check for jumps
 			}
+			if (!turn || currentCheckerPos.king)    // black or king
+					{
+				//     if( hm >3 )// not in top row
+				if (hm > 3 && !jumpMade)    // not in top row
+						{
+					if (hm % 8 == 3 || hm % 8 == 4)    // is edge position
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						if (checkCheckerPos4.color == "") {
+							moveIdxList[Nmoves++] = hm - 4;
+						}
+					} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5, 7 )
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						auto checkCheckerPos5 = database.get<CheckerPos>(
+								hm + 1 - 5);
+						if (checkCheckerPos4.color == "") {
+							moveIdxList[Nmoves++] = hm - 4;
+						}
+						if (checkCheckerPos5.color == "") {
+							moveIdxList[Nmoves++] = hm - 5;
+						}
+					} else    // even row ( 2, 4, 6 )
+					{
+						auto checkCheckerPos3 = database.get<CheckerPos>(
+								hm + 1 - 3);
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						if (checkCheckerPos3.color == "") {
+							moveIdxList[Nmoves++] = hm - 3;
+						}
+						if (checkCheckerPos4.color == "") {
+							moveIdxList[Nmoves++] = hm - 4;
+						}
+					}
+				}
+				if (hm > 7)    // check for jumps
+						{
+					if (hm % 8 == 3)    // on right edge
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						auto checkCheckerPos9 = database.get<CheckerPos>(
+								hm + 1 - 9);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos9.color == "") { // a jump over hm+4 to hm+7 can be made
+							moveIdxList[Nmoves++] = hm - 9;
+						}
+					} else if (hm % 8 == 4)    // on left edge
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						auto checkCheckerPos7 = database.get<CheckerPos>(
+								hm + 1 - 7);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos7.color == "") { // a jump over hm+4 to hm+7 can be made
+							moveIdxList[Nmoves++] = hm - 7;
+						}
+					} else if ((hm / 4) % 2)    // odd row ( 3, 5, 7 )
+							{
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						auto checkCheckerPos7 = database.get<CheckerPos>(
+								hm + 1 - 7);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos7.color == "") {
+							moveIdxList[Nmoves++] = hm - 7;
+						}
+						auto checkCheckerPos5 = database.get<CheckerPos>(
+								hm + 1 - 5);
+						auto checkCheckerPos9 = database.get<CheckerPos>(
+								hm + 1 - 9);
+						if (checkCheckerPos5.color == opCol
+								&& checkCheckerPos9.color == "") {
+							moveIdxList[Nmoves++] = hm - 9;
+						}
+					} else    // even row ( 0, 2, 4 )
+					{
+						auto checkCheckerPos3 = database.get<CheckerPos>(
+								hm + 1 - 3);
+						auto checkCheckerPos7 = database.get<CheckerPos>(
+								hm + 1 - 7);
+						if (checkCheckerPos3.color == opCol
+								&& checkCheckerPos7.color == "") {
+							moveIdxList[Nmoves++] = hm - 7;
+						}
+						auto checkCheckerPos4 = database.get<CheckerPos>(
+								hm + 1 - 4);
+						auto checkCheckerPos9 = database.get<CheckerPos>(
+								hm + 1 - 9);
+						if (checkCheckerPos4.color == opCol
+								&& checkCheckerPos9.color == "") {
+							moveIdxList[Nmoves++] = hm - 9;
+						}
+					}
+				}    // end check for jumps
+			}
+		} catch (std::exception &e) {
+			perror("fillMoveList: ");
+			perror(e.what());
 		}
-		if (hm > 7)    // check for jumps
-				{
-			if (hm % 8 == 3)    // on right edge
-					{
-				if ((checkerPos[hm - 4] == opCol || checkerPos[hm - 4] == opColK)
-						&& checkerPos[hm - 9] == 'n') // a jump over hm+4 to hm+7 can be made
-					moveIdxList[Nmoves++] = hm - 9;
-			} else if (hm % 8 == 4)    // on left edge
-					{
-				if ((checkerPos[hm - 4] == opCol || checkerPos[hm - 4] == opColK)
-						&& checkerPos[hm - 7] == 'n') // a jump over hm+4 to hm+7 can be made
-					moveIdxList[Nmoves++] = hm - 7;
-			} else if ((hm / 4) % 2)    // odd row ( 3, 5, 7 )
-					{
-				if ((checkerPos[hm - 4] == opCol || checkerPos[hm - 4] == opColK)
-						&& checkerPos[hm - 7] == 'n')
-					moveIdxList[Nmoves++] = hm - 7;
-				if ((checkerPos[hm - 5] == opCol || checkerPos[hm - 5] == opColK)
-						&& checkerPos[hm - 9] == 'n')
-					moveIdxList[Nmoves++] = hm - 9;
-			} else    // even row ( 0, 2, 4 )
-			{
-				if ((checkerPos[hm - 3] == opCol || checkerPos[hm - 3] == opColK)
-						&& checkerPos[hm - 7] == 'n')
-					moveIdxList[Nmoves++] = hm - 7;
-				if ((checkerPos[hm - 4] == opCol || checkerPos[hm - 4] == opColK)
-						&& checkerPos[hm - 9] == 'n')
-					moveIdxList[Nmoves++] = hm - 9;
-			}
-		}    // end check for jumps
 	}
 
 // check if any jump moves were found
@@ -790,6 +971,7 @@ int hitAnchor(bool Turn) // global turn not used as other value may be considere
 		{
 	int hSz = chSz / 2;
 	int idx = 0;
+	int ret = -1;
 
 	for (idx = 0; idx < Nanchors; ++idx) {
 		if (mseX < anchorArr1[idx].first - hSz)
@@ -802,13 +984,23 @@ int hitAnchor(bool Turn) // global turn not used as other value may be considere
 			continue;
 		break;    // because anchor idx was hit
 	}
-	if (idx == Nanchors)
-		return -1;    // all anchors were missed
-	if (Turn && (checkerPos[idx] == 'w' || checkerPos[idx] == 'W'))
-		return idx;
-	if (!Turn && (checkerPos[idx] == 'b' || checkerPos[idx] == 'B'))
-		return idx;
-	return -1;    // invalid anchor was hit
+	CheckerPos currentCheckerPos;
+	try {
+		currentCheckerPos = database.get<CheckerPos>(idx + 1);
+	} catch (std::exception &e) {
+		if (idx != 32) {
+			perror("hitAnchor: ");
+			perror(e.what());
+		}
+	}
+	if (idx == 32) {
+		ret = -1;    // all anchors were missed
+	} else if (Turn && currentCheckerPos.color == "White") {
+		ret = idx;
+	} else if (!Turn && currentCheckerPos.color == "Black") {
+		ret = idx;
+	}
+	return ret;
 }
 
 void drawCheckers(sf::RenderWindow& rApp) {
@@ -828,33 +1020,37 @@ void drawCheckers(sf::RenderWindow& rApp) {
 		for (i = 0; i < Nanchors; ++i)
 			if (i != chObj.homeIdx)    // exclude the moving chObj
 					{
-				switch (checkerPos[i]) {
-				case 'w':
-					wh_chSprite.setPosition(
-							static_cast<float>(anchorArr1[i].first) - hSz,
-							static_cast<float>(anchorArr1[i].second) - hSz);
-					rApp.draw(wh_chSprite);
-					break;
-				case 'W':
-					wh_kSprite.setPosition(
-							static_cast<float>(anchorArr1[i].first) - hSz,
-							static_cast<float>(anchorArr1[i].second) - hSz);
-					rApp.draw(wh_kSprite);
-					break;
-				case 'b':
-					bk_chSprite.setPosition(
-							static_cast<float>(anchorArr1[i].first) - hSz,
-							static_cast<float>(anchorArr1[i].second) - hSz);
-					rApp.draw(bk_chSprite);
-					break;
-				case 'B':
-					bk_kSprite.setPosition(
-							static_cast<float>(anchorArr1[i].first) - hSz,
-							static_cast<float>(anchorArr1[i].second) - hSz);
-					rApp.draw(bk_kSprite);
-					break;
-				default:
-					break;
+				CheckerPos currentCheckerPos;
+				try {
+					currentCheckerPos = database.get<CheckerPos>(i + 1);
+				} catch (std::exception &e) {
+					perror("drawCheckers: ");
+					perror(e.what());
+				}
+				if (currentCheckerPos.color == "White") {
+					if (!currentCheckerPos.king) {
+						wh_chSprite.setPosition(
+								static_cast<float>(anchorArr1[i].first) - hSz,
+								static_cast<float>(anchorArr1[i].second) - hSz);
+						rApp.draw(wh_chSprite);
+					} else {
+						wh_kSprite.setPosition(
+								static_cast<float>(anchorArr1[i].first) - hSz,
+								static_cast<float>(anchorArr1[i].second) - hSz);
+						rApp.draw(wh_kSprite);
+					}
+				} else if (currentCheckerPos.color == "Black") {
+					if (!currentCheckerPos.king) {
+						bk_chSprite.setPosition(
+								static_cast<float>(anchorArr1[i].first) - hSz,
+								static_cast<float>(anchorArr1[i].second) - hSz);
+						rApp.draw(bk_chSprite);
+					} else {
+						bk_kSprite.setPosition(
+								static_cast<float>(anchorArr1[i].first) - hSz,
+								static_cast<float>(anchorArr1[i].second) - hSz);
+						rApp.draw(bk_kSprite);
+					}
 				}
 			}
 
@@ -880,8 +1076,8 @@ void drawCheckers(sf::RenderWindow& rApp) {
 		}
 
 		// single animations
-		if (aniPath.inUse)
-			aniPath.draw();
+//		if (aniPath.inUse)
+//			aniPath.draw();
 		if (kingMePath.inUse)
 			kingMePath.draw();
 	}
@@ -962,8 +1158,7 @@ bool menuHitDown(void)    // returns false if file I/O error
 
 	if (gameOn)
 		if (saveGameButt.hit_dn()) {
-			if (!saveGameToFile("save.db"))
-				return false;
+			saveDatabase("save.db", 0);
 		}
 	if (newButt.hit_dn()) {
 		init_game = true;
@@ -971,8 +1166,7 @@ bool menuHitDown(void)    // returns false if file I/O error
 	}
 	if (savedButt.hit_dn()) {
 		init_game = true;
-		if (!INITcheckerPositions_SAVED("save.db"))
-			return false;
+		INITcheckerPositions_SAVED();
 	}
 
 	if (init_game)    // resets game
@@ -981,9 +1175,19 @@ bool menuHitDown(void)    // returns false if file I/O error
 
 		INITpathLegs();
 		int i = 0;
-		for (i = 0; i < 32; ++i)
-			if (checkerPos[i] == 'w')
-				break;    // find 1st white checker
+		bool whiteFound = false;
+		for (i = 0; !whiteFound && i < 32; ++i) {
+			CheckerPos currentCheckerPos;
+			try {
+				currentCheckerPos = database.get<CheckerPos>(i + 1);
+				if (currentCheckerPos.color == "White") {
+					whiteFound = true;    // find 1st white checker
+				}
+			} catch (std::exception &e) {
+				perror("menuHitDown: ");
+				perror(e.what());
+			}
+		}
 		chObj.homeIdx = i;
 		chObj.docked = false;
 		chObj.snap();
@@ -1023,6 +1227,19 @@ void gameHitDown(void) {
 		if (idx != -1)        // it was!
 				{
 			turn = !turn;        // change turn
+			GameState currentState;
+			try {
+				currentState = database.get<GameState>(1);
+				if (turn) {
+					currentState.turn = "White";
+				} else {
+					currentState.turn = "Black";
+				}
+				database.update(currentState);
+			} catch (std::exception &e) {
+				perror("gameHitDown: ");
+				perror(e.what());
+			}
 			jumpMade = canJump = false;
 		}
 	} else
@@ -1041,21 +1258,25 @@ void gameHitDown(void) {
 			chObj.docked = false;
 			chObj.snap();
 			chObj.grab();
-			switch (checkerPos[idx]) {
-			case 'w':
-				chObj.pSprite = &wh_chSprite;
-				break;
-			case 'W':
-				chObj.pSprite = &wh_kSprite;
-				break;
-			case 'b':
-				chObj.pSprite = &bk_chSprite;
-				break;
-			case 'B':
-				chObj.pSprite = &bk_kSprite;
-				break;
-			default:
-				break;
+			CheckerPos currentCheckerPos;
+			try {
+				currentCheckerPos = database.get<CheckerPos>(idx + 1);
+				if (currentCheckerPos.color == "White") {
+					if (!currentCheckerPos.king) {
+						chObj.pSprite = &wh_chSprite;
+					} else {
+						chObj.pSprite = &wh_kSprite;
+					}
+				} else if (currentCheckerPos.color == "Black") {
+					if (!currentCheckerPos.king) {
+						chObj.pSprite = &bk_chSprite;
+					} else {
+						chObj.pSprite = &bk_kSprite;
+					}
+				}
+			} catch (std::exception &e) {
+				perror("gameHitDown: ");
+				perror(e.what());
 			}
 		}
 	}
@@ -1072,8 +1293,21 @@ void gameHitUp(void) {
 	if (hm_f != hm_0)        // a move was made
 			{
 		// update list for moved checker
-		checkerPos[hm_f] = checkerPos[hm_0];
-		checkerPos[hm_0] = 'n';
+		CheckerPos currentCheckerPosf;
+		CheckerPos currentCheckerPos0;
+		try {
+			currentCheckerPosf = database.get<CheckerPos>(hm_f + 1);
+			currentCheckerPos0 = database.get<CheckerPos>(hm_0 + 1);
+			currentCheckerPosf.color = currentCheckerPos0.color;
+			currentCheckerPosf.king = currentCheckerPos0.king;
+			currentCheckerPos0.color = "";
+			currentCheckerPos0.king = false;
+			database.update(currentCheckerPosf);
+			database.update(currentCheckerPos0);
+		} catch (std::exception &e) {
+			perror("gameHitUp: ");
+			perror(e.what());
+		}
 
 		float hSz = chSz / 2;
 
@@ -1081,16 +1315,19 @@ void gameHitUp(void) {
 		justKinged = false;
 		float xf = (float) (anchorArr1[hm_f].first) - hSz;
 		float yf = (float) (anchorArr1[hm_f].second) - hSz;
-		if (turn && hm_f > 27 && checkerPos[hm_f] != 'W') {
-			checkerPos[hm_f] = 'W';
+		if (turn && hm_f > 27 && currentCheckerPosf.color == "White"
+				&& !currentCheckerPosf.king) {
+			currentCheckerPosf.king = true;
+			database.update(currentCheckerPosf);
 //            chObj.pSprite = &wh_kSprite;
 			*kingMePath.ppSprite = &wh_chSprite;
 			p_kingMePathLeg->INIT(wh_captX + (Nwh_capt - 1) * capt_dx, wh_captY,
 					xf, yf, 20.0f);
 			justKinged = true;
-		}
-		if (!turn && hm_f < 4 && checkerPos[hm_f] != 'B') {
-			checkerPos[hm_f] = 'B';
+		} else if (!turn && hm_f < 4 && currentCheckerPosf.color == "Black"
+				&& !currentCheckerPosf.king) {
+			currentCheckerPosf.king = true;
+			database.update(currentCheckerPosf);
 //            chObj.pSprite = &bk_kSprite;
 			*kingMePath.ppSprite = &bk_chSprite;
 			p_kingMePathLeg->INIT(bk_captX + (Nbk_capt - 1) * capt_dx, bk_captY,
@@ -1103,34 +1340,44 @@ void gameHitUp(void) {
 		jumpMade = didJump(hm_0, hm_f, jumpIdx);
 		if (jumpMade) {
 			// for the capture animation
-			colorCapt = checkerPos[jumpIdx];
-			checkerPos[jumpIdx] = 'n';        // remove checker from board
+			CheckerPos jumpedCheckerPos;
+			try {
+				jumpedCheckerPos = database.get<CheckerPos>(jumpIdx + 1);
+				if (jumpedCheckerPos.color == "White") {
+					colorCapt = 'w';
+				} else {
+					colorCapt = 'b';
+				}
+				jumpedCheckerPos.color = "";
+				jumpedCheckerPos.king = false;
+				database.update(jumpedCheckerPos);
+			} catch (std::exception &e) {
+				perror("gameHitUp: ");
+				perror(e.what());
+			}
 			animateCapt = true;
 			float xi = (float) (anchorArr1[jumpIdx].first) - hSz;
 			float yi = (float) (anchorArr1[jumpIdx].second) - hSz;
 
-			if (colorCapt == 'w' || colorCapt == 'W')
+			if (jumpedCheckerPos.color == "White")
 				p_aniPathLeg->INIT(xi, yi, wh_captX + Nwh_capt * capt_dx,
 						wh_captY, 40.0f);
 			else
 				p_aniPathLeg->INIT(xi, yi, bk_captX + Nbk_capt * capt_dx,
 						bk_captY, 40.0f);
 
-			switch (colorCapt) {
-			case 'w':
-				*aniPath.ppSprite = &wh_chSprite;
-				break;
-			case 'W':
-				*aniPath.ppSprite = &wh_kSprite;
-				break;
-			case 'b':
-				*aniPath.ppSprite = &bk_chSprite;
-				break;
-			case 'B':
-				*aniPath.ppSprite = &bk_kSprite;
-				break;
-			default:
-				break;
+			if (jumpedCheckerPos.color == "White") {
+				if (!jumpedCheckerPos.king) {
+					*aniPath.ppSprite = &wh_chSprite;
+				} else {
+					*aniPath.ppSprite = &wh_kSprite;
+				}
+			} else if (jumpedCheckerPos.color == "Black") {
+				if (!jumpedCheckerPos.king) {
+					*aniPath.ppSprite = &bk_chSprite;
+				} else {
+					*aniPath.ppSprite = &bk_kSprite;
+				}
 			}
 			aniPath.reset(true, 0);
 
@@ -1141,8 +1388,22 @@ void gameHitUp(void) {
 		} else
 			canJump = false;        // no jump = no next jump
 
-		if (!canJump)
+		if (!canJump) {
 			turn = !turn;        // change turns
+			GameState currentState;
+			try {
+				currentState = database.get<GameState>(1);
+				if (turn) {
+					currentState.turn = "White";
+				} else {
+					currentState.turn = "Black";
+				}
+				database.update(currentState);
+			} catch (std::exception &e) {
+				perror("gameHitDown: ");
+				perror(e.what());
+			}
+		}
 	}
 
 	return;
