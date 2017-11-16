@@ -15,3 +15,14 @@ run "pacman -S make"
 run "pacman -S mingw-w64-x86_64-sfml"
 run "pacman -S mingw-w64-x86_64-sqlite3"
 run "pacman -S libsqlite-devel"
+
+Libraries to link to:
+sfml-graphics
+sfml-windows
+sfml-system
+gdi32
+sqlite3
+
+Include:
+src
+sqlite_orm
