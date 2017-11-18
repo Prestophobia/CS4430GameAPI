@@ -3,10 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "buttonRectDrawn.h"
-#include "dragDropRect.h"
-#include "linLeg.h"
-#include "Path.h"
+#include "Graphics/dragDrop.h"
 
 #include "Data/GameData.h"
 
@@ -23,7 +20,7 @@
 void checkEvents(sf::Event &event, sf::Window &window, GameData &gdata,
 		Animations &ganimators, Menu &gmenu, Database &gdatabase,
 		MenuHit &gmenuHit, GameHit &ggameHit);
-void gameLogic(Animations &ganimators);
+void gameAnimations(Animations &ganimators);
 
 template<class T>
 float to_sf_string(sf::String& strArg, T x) // returns position of end of strArg
@@ -37,10 +34,8 @@ float to_sf_string(sf::String& strArg, T x) // returns position of end of strArg
 }
 
 int main(int argc, char *argv[]) {
-	try {
 
-		// TODO Make capture animation work
-		// TODO Make database on same level with sprites (break off inits)
+	try {
 		Database gdatabase;
 		Sprites gsprites(150, 50);
 		gsprites.initText();
@@ -78,7 +73,7 @@ int main(int argc, char *argv[]) {
 				if (!gdata.pause
 						&& frClock.getElapsedTime().asSeconds() > frPeriod) {
 					frClock.restart();
-					gameLogic(ganimators);
+					gameAnimations(ganimators);
 
 					// draw stuff
 					window.clear(sf::Color(0, 50, 100)); // Color bkgd
@@ -157,7 +152,7 @@ void checkEvents(sf::Event &event, sf::Window &window, GameData &gdata,
 	}
 }
 
-void gameLogic(Animations &ganimators) {
+void gameAnimations(Animations &ganimators) {
 	// the checker deal animation
 	if (ganimators.gdata.reset) {
 		ganimators.wh_dealPath.move();

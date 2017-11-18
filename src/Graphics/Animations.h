@@ -10,8 +10,8 @@
 #ifndef GRAPHICS_ANIMATIONS_H_
 #define GRAPHICS_ANIMATIONS_H_
 
-#include "Path.h"
-#include "linLeg.h"
+#include "Graphics/Path.h"
+#include "Graphics/linLeg.h"
 
 #include "Graphics/Sprites.h"
 

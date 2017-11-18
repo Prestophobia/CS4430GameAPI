@@ -1,4 +1,4 @@
-#include "buttonRectImage.h"
+#include "Graphics/buttonRectImage.h"
 
 buttonRectImage::buttonRectImage(char Type, int PosX, int PosY,
 		sf::Sprite* p_Sprite) :

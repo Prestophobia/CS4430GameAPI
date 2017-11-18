@@ -387,56 +387,59 @@ bool GameHit::didJump(int hm_0, int hm_f, int& jumpIdx) // returns true if a jum
 }
 
 void GameHit::gameHitUp() {
+
 	int hm_0 = ganimators.chObj.homeIdx;
 	ganimators.chObj.release(gdata.moveIdxList, gdata.Nmoves);
 	ganimators.chObj.snap();
-
 	int hm_f = ganimators.chObj.homeIdx;
-	if (hm_f != hm_0)        // a move was made
-			{
-		// update list for moved checker
-		CheckerPos currentCheckerPosf;
-		CheckerPos currentCheckerPos0;
-		try {
-			currentCheckerPosf = gdatabase.getCheckerPos(hm_f + 1);
-			currentCheckerPos0 = gdatabase.getCheckerPos(hm_0 + 1);
-			currentCheckerPosf.color = currentCheckerPos0.color;
-			currentCheckerPosf.king = currentCheckerPos0.king;
-			currentCheckerPos0.color = "";
-			currentCheckerPos0.king = false;
-			gdatabase.updateCheckerPos(currentCheckerPosf);
-			gdatabase.updateCheckerPos(currentCheckerPos0);
-		} catch (std::exception &e) {
-			perror("gameHitUp: ");
-			perror(e.what());
-		}
+	if (hm_f != hm_0) {
+
+		// Move checker in database
+		CheckerPos currentCheckerPosf = gdatabase.getCheckerPos(hm_f + 1);
+		CheckerPos currentCheckerPos0 = gdatabase.getCheckerPos(hm_0 + 1);
+
+		// TODO update checker record in database
+		currentCheckerPosf.color = currentCheckerPos0.color;
+		currentCheckerPosf.king = currentCheckerPos0.king;
+
+		currentCheckerPos0.color = "";
+		currentCheckerPos0.king = false;
+
+		gdatabase.updateCheckerPos(currentCheckerPosf);
+		gdatabase.updateCheckerPos(currentCheckerPos0);
 
 		float hSz = gdata.chSz / 2;
-
 		GameState currentState = gdatabase.getGameState();
 
-		// King me!
+		// Check for king; King me if necessary
 		ganimators.justKinged = false;
 		float xf = (float) (gdata.anchorArr1[hm_f].first) - hSz;
 		float yf = (float) (gdata.anchorArr1[hm_f].second) - hSz;
 		if (currentState.turn == "White" && hm_f > 27
 				&& currentCheckerPosf.color == "White"
 				&& !currentCheckerPosf.king) {
+
+			// Update database
 			currentCheckerPosf.king = true;
 			gdatabase.updateCheckerPos(currentCheckerPosf);
-//            chObj.pSprite = &wh_kSprite;
+
+			// Update animation
 			*ganimators.kingMePath.ppSprite = &gsprites.wh_chSprite;
 			ganimators.p_kingMePathLeg->INIT(
 					ganimators.wh_captX
 							+ (ganimators.Nwh_capt - 1) * ganimators.capt_dx,
 					ganimators.wh_captY, xf, yf, 20.0f);
 			ganimators.justKinged = true;
+
 		} else if (currentState.turn == "Black" && hm_f < 4
 				&& currentCheckerPosf.color == "Black"
 				&& !currentCheckerPosf.king) {
+
+			// Update database
 			currentCheckerPosf.king = true;
 			gdatabase.updateCheckerPos(currentCheckerPosf);
-//            chObj.pSprite = &bk_kSprite;
+
+			// Update animation
 			*ganimators.kingMePath.ppSprite = &gsprites.bk_chSprite;
 			ganimators.p_kingMePathLeg->INIT(
 					ganimators.bk_captX
@@ -445,38 +448,38 @@ void GameHit::gameHitUp() {
 			ganimators.justKinged = true;
 		}
 
-		// was a jump made?
+		// Perform jump
 		int jumpIdx = 0;
 		gdata.jumpMade = didJump(hm_0, hm_f, jumpIdx);
 		if (gdata.jumpMade) {
-			// for the capture animation
+
 			CheckerPos jumpedCheckerPos;
-			try {
-				jumpedCheckerPos = gdatabase.getCheckerPos(jumpIdx + 1);
-				if (jumpedCheckerPos.color == "White"
-						&& !jumpedCheckerPos.king) {
-					ganimators.colorCapt = 'w';
-				} else if (jumpedCheckerPos.color == "White"
-						&& jumpedCheckerPos.king) {
-					ganimators.colorCapt = 'W';
-				} else if (jumpedCheckerPos.color == "Black"
-						&& !jumpedCheckerPos.king) {
-					ganimators.colorCapt = 'b';
-				} else if (jumpedCheckerPos.color == "Black"
-						&& jumpedCheckerPos.king) {
-					ganimators.colorCapt = 'B';
-				}
-				jumpedCheckerPos.color = "";
-				jumpedCheckerPos.king = false;
-				gdatabase.updateCheckerPos(jumpedCheckerPos);
-			} catch (std::exception &e) {
-				perror("gameHitUp: ");
-				perror(e.what());
+			jumpedCheckerPos = gdatabase.getCheckerPos(jumpIdx + 1);
+
+			// Setup capture animation
+			// TODO Make capture animation work
+			if (jumpedCheckerPos.color == "White" && !jumpedCheckerPos.king) {
+				ganimators.colorCapt = 'w';
+			} else if (jumpedCheckerPos.color == "White"
+					&& jumpedCheckerPos.king) {
+				ganimators.colorCapt = 'W';
+			} else if (jumpedCheckerPos.color == "Black"
+					&& !jumpedCheckerPos.king) {
+				ganimators.colorCapt = 'b';
+			} else if (jumpedCheckerPos.color == "Black"
+					&& jumpedCheckerPos.king) {
+				ganimators.colorCapt = 'B';
 			}
+
+			// Remove checker
+			jumpedCheckerPos.color = "";
+			jumpedCheckerPos.king = false;
+			gdatabase.updateCheckerPos(jumpedCheckerPos);
 			ganimators.animateCapt = true;
 			float xi = (float) (gdata.anchorArr1[jumpIdx].first) - hSz;
 			float yi = (float) (gdata.anchorArr1[jumpIdx].second) - hSz;
 
+			// Update animation
 			if (jumpedCheckerPos.color == "White") {
 				ganimators.p_aniPathLeg->INIT(xi, yi,
 						ganimators.wh_captX
@@ -504,7 +507,7 @@ void GameHit::gameHitUp() {
 			}
 			ganimators.aniPath.reset(true, 0);
 
-			// see if another jump can be made
+			// See if another jump can be made
 			gdata.canJump = false;
 			if (!ganimators.justKinged) {
 				gdata.canJump = fillMoveList(hm_f);
@@ -513,6 +516,7 @@ void GameHit::gameHitUp() {
 			gdata.canJump = false;        // no jump = no next jump
 		}
 
+		// If no more jumps for this player, change turn
 		if (!gdata.canJump) {
 			GameState currentState = gdatabase.getGameState();
 			if (currentState.turn == "Black") {

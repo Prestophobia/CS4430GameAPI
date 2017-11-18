@@ -1,7 +1,7 @@
 #ifndef BUTTONRECT_H
 #define BUTTONRECT_H
 
-#include "button.h"
+#include "Graphics/button.h"
 
 class buttonRect: public button {
 public:

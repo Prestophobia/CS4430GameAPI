@@ -1,4 +1,4 @@
-#include "button.h"
+#include "Graphics/button.h"
 
 // static vars INIT
 sf::RenderWindow* button::pWndw = NULL;

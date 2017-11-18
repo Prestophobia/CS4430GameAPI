@@ -1,7 +1,7 @@
 #ifndef BUTTONRECTIMAGE_H
 #define BUTTONRECTIMAGE_H
 
-#include "buttonRect.h"
+#include "Graphics/buttonRect.h"
 
 class buttonRectImage: public buttonRect {
 public:

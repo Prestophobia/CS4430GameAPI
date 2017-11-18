@@ -1,7 +1,7 @@
 #ifndef DRAGDROPRECT_H
 #define DRAGDROPRECT_H
 
-#include "dragDrop.h"
+#include "Graphics/dragDrop.h"
 
 class dragDropRect: public dragDrop {
 public:

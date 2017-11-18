@@ -12,7 +12,7 @@
 
 #include "Graphics/Sprites.h"
 
-#include "dragDropRect.h"
+#include "Graphics/dragDropRect.h"
 
 #define NANCHORS 32
 

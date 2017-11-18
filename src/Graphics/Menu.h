@@ -10,8 +10,7 @@
 #ifndef GRAPHICS_MENU_H_
 #define GRAPHICS_MENU_H_
 
-#include "buttonRectImage.h"
-
+#include "Graphics/buttonRectImage.h"
 #include "Graphics/Sprites.h"
 
 class Menu {

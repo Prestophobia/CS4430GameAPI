@@ -11,8 +11,8 @@
 
 MenuHit::MenuHit(Animations &ganimators, Menu &gmenu) :
 		gsprites(ganimators.gsprites), gmenu(gmenu), gdatabase(
-				ganimators.gdatabase), gdata(
-				ganimators.gdata), ganimators(ganimators) {
+				ganimators.gdatabase), gdata(ganimators.gdata), ganimators(
+				ganimators) {
 
 }
 
@@ -20,6 +20,7 @@ bool MenuHit::menuHitDown(void)    // returns false if file I/O error
 		{
 	bool init_game = false;
 
+	// Get menu option chosen
 	if (gdata.gameOn)
 		if (gmenu.saveGameButt.hit_dn(gdata.mseX, gdata.mseY)) {
 			gdatabase.saveGame("save.db");
@@ -33,11 +34,11 @@ bool MenuHit::menuHitDown(void)    // returns false if file I/O error
 		gdatabase.loadGame("save.db");
 	}
 
-	if (init_game)    // resets game
-	{
-		init_game = false;
+	// Reset game
+	if (init_game) {
 
-		ganimators.initPathLegs();
+		// Count checker for each side
+		// TODO use COUNT SQL command with SELECT on color
 		int i = 0;
 		int num_white = 0;
 		int num_black = 0;
@@ -55,21 +56,26 @@ bool MenuHit::menuHitDown(void)    // returns false if file I/O error
 				num_black++;
 			}
 		}
+
+		// Set game flags
+		gdata.reset = true;
+		gdata.gameOn = gdata.gameOver = false;
+
+		// Reset animations
+		ganimators.initPathLegs();
 		ganimators.chObj.homeIdx = whiteIndex;
 		ganimators.chObj.docked = false;
 		ganimators.chObj.snap();
 		ganimators.chObj.pSprite = &gsprites.wh_chSprite;
-		gdata.reset = true;
-		gdata.gameOn = gdata.gameOver = false;
 		ganimators.animateKing = ganimators.justKinged = false;
 		ganimators.wh_dealPath.reset(true, 0);
 		ganimators.bk_dealPath.reset(true, 0);
 		ganimators.Nwh_capt = 12 - num_white;
 		ganimators.Nbk_capt = 12 - num_black;
-		//        textFX = true;
-		//        textFXdelay = 30;
-		//        textExpand( msg_WELCOME, 1.0f, 7.0f, 20, true );
-		//        textFade( msg_WELCOME, 255, 1, 20, true );
+//		ganimators.textFX = true;
+//		ganimators.textFXdelay = 30;
+//		ganimators.textExpand(gsprites.msg_WELCOME, 1.0f, 7.0f, 20, true);
+//		ganimators.textFade(gsprites.msg_WELCOME, 255, 1, 20, true);
 	}
 
 	return true;
