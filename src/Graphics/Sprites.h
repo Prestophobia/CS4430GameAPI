@@ -55,7 +55,8 @@ public:
 	sf::Texture buttTex1;
 
 	Sprites(float checkerBoardPosX, float checkerBoardPosY);
-	void initText(void);
+	void loadSprites();
+	void initText();
 };
 
 #endif /* GRAPHICS_SPRITES_H_ */

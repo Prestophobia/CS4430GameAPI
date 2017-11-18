@@ -11,6 +11,8 @@
 
 Animations::Animations(GameData &gdata, Database &gdatabase) :
 		gsprites(gdata.gsprites), gdatabase(gdatabase), gdata(gdata) {
+	initPaths();
+	initDragDrops();
 }
 
 void Animations::initPaths() {

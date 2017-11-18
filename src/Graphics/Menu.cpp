@@ -11,7 +11,7 @@
 
 Menu::Menu(Sprites &gsprites) :
 		gsprites(gsprites) {
-
+	initButtons();
 }
 
 void Menu::initButtons() {

@@ -11,6 +11,7 @@
 
 GameData::GameData(Sprites &gsprites) :
 		gsprites(gsprites) {
+	initBoard();
 }
 
 void GameData::initBoard() {

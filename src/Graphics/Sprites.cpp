@@ -10,6 +10,12 @@
 #include "Graphics/Sprites.h"
 
 Sprites::Sprites(float checkerBoardPosX, float checkerBoardPosY) {
+	loadSprites();
+	boardSprite.setPosition(checkerBoardPosX, checkerBoardPosY);
+	initText();
+}
+
+void Sprites::loadSprites() {
 	// Font
 	font.loadFromFile("images/Enchanted Land.otf");
 
@@ -44,10 +50,9 @@ Sprites::Sprites(float checkerBoardPosX, float checkerBoardPosY) {
 	// Checker Board
 	boardTex.loadFromFile("images/checker_board.jpg");
 	boardSprite.setTexture(boardTex);
-	boardSprite.setPosition(checkerBoardPosX, checkerBoardPosY);
 }
 
-void Sprites::initText(void) {
+void Sprites::initText() {
 	msg.setString("Loading");
 	msg.setPosition(300.0f, 30.0f);
 	msg.setFont(font);

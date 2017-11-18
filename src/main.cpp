@@ -38,14 +38,9 @@ int main(int argc, char *argv[]) {
 	try {
 		Database gdatabase;
 		Sprites gsprites(150, 50);
-		gsprites.initText();
 		Menu gmenu(gsprites);
-		gmenu.initButtons();
 		GameData gdata(gsprites);
-		gdata.initBoard();
 		Animations ganimators(gdata, gdatabase);
-		ganimators.initPaths();
-		ganimators.initDragDrops();
 		MenuHit gmenuHit(ganimators, gmenu);
 		GameHit ggameHit(ganimators);
 
@@ -61,7 +56,6 @@ int main(int argc, char *argv[]) {
 		sf::Clock frClock;
 		frClock.restart();
 
-//		button::pWndw = &window;
 		ganimators.wh_dealPath.inUse = false;
 		ganimators.bk_dealPath.inUse = false;
 
