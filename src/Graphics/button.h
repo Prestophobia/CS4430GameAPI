@@ -5,7 +5,6 @@
 
 class button {
 public:
-	static sf::RenderWindow* pWndw;
 	sf::Text label;
 	char labelPos = 0; // l,r,c,t,b
 
@@ -19,7 +18,7 @@ public:
 
 	// pure virtual
 	virtual bool hit(int mseX, int mseY) = 0;
-	virtual void draw(void) = 0;
+	virtual void draw(sf::RenderWindow *pWndw) = 0;
 	virtual void set_label(const sf::Text Label) = 0; // label position assigned
 
 	// logic

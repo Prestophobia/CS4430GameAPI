@@ -28,7 +28,7 @@ void buttonRectDrawn::set_colors(sf::Color unSel_color, sf::Color sel_color,
 	unMoColor = unMo_color;
 }
 
-void buttonRectDrawn::draw(void) {
+void buttonRectDrawn::draw(sf::RenderWindow *pWndw) {
 	sf::Color sColor = sel ? selColor : unSelColor;
 	sf::Color mColor = mo ? moColor : unMoColor;
 

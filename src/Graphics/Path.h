@@ -5,9 +5,8 @@
 #include <SFML/Graphics.hpp>
 
 class Path {
-public:
 
-	static sf::RenderWindow* pWndw;
+public:
 	sf::Sprite** ppSprite; // for array of sprite pointers (a different object can be drawn on each Leg)
 
 	// for use with Legs
@@ -29,7 +28,7 @@ public:
 	// functions
 	void reset(bool InUse, int Delay = 0);
 	void move();
-	void draw();
+	void draw(sf::RenderWindow *pWndw);
 	Path(int N_legs, int Delay, int Launch_dt, float Xi, float Yi);
 	~Path();
 };

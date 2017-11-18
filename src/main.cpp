@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "Graphics/dragDrop.h"
+#include "Graphics/dragDropRect.h"
 
 #include "Data/GameData.h"
 
@@ -48,21 +48,20 @@ int main(int argc, char *argv[]) {
 		ganimators.initDragDrops();
 		MenuHit gmenuHit(ganimators, gmenu);
 		GameHit ggameHit(ganimators);
-		Drawing gdrawer(ganimators, gmenu);
 
 		// create the SFML window
 		sf::RenderWindow window(sf::VideoMode(gdata.w_szX, gdata.w_szY),
 				"Checkers");
 		window.setActive();
 
+		Drawing gdrawer(&window, ganimators, gmenu);
+
 		// local vars
 		float frPeriod = 1.0f / 30.0f; // for 30 fps
 		sf::Clock frClock;
 		frClock.restart();
 
-		button::pWndw = &window;
-		dragDrop::pWndw = &window;
-		Path::pWndw = &window;
+//		button::pWndw = &window;
 		ganimators.wh_dealPath.inUse = false;
 		ganimators.bk_dealPath.inUse = false;
 

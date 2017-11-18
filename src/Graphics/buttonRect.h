@@ -10,7 +10,7 @@ public:
 
 	// functions
 	virtual bool hit(int mseX, int mseY);
-	virtual void draw(void) = 0;
+	virtual void draw(sf::RenderWindow *pWndw) = 0;
 	void set_label(const sf::Text Label);
 
 	// constructors

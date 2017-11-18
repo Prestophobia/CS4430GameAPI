@@ -23,13 +23,15 @@
 class Drawing {
 
 public:
+	sf::RenderWindow *pWndw;
+
 	Sprites &gsprites;
 	Menu &gmenu;
 	GameData &gdata;
 	Animations &ganimators;
 	Database &gdatabase;
 
-	Drawing(Animations &ganimators, Menu &gmenu);
+	Drawing(sf::RenderWindow *pWndw, Animations &ganimators, Menu &gmenu);
 	void gameDraw(sf::RenderWindow& rApp);
 	void drawCheckers(sf::RenderWindow& rApp);
 

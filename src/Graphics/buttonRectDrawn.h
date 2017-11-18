@@ -12,7 +12,7 @@ public:
 	sf::Color unMoColor;
 
 	// functions
-	virtual void draw(void);
+	virtual void draw(sf::RenderWindow *pWndw);
 	void set_colors(sf::Color unSel_color, sf::Color sel_color,
 			sf::Color unMo_color, sf::Color mo_color);
 

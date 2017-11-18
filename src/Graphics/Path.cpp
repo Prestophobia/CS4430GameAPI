@@ -1,7 +1,5 @@
 #include "Path.h"
 
-sf::RenderWindow* Path::pWndw = NULL;
-
 Path::Path(int N_legs, int Delay, int Launch_dt, float Xi, float Yi) {
 	nLegs = nLegs_inUse = N_legs;
 
@@ -97,7 +95,7 @@ void Path::move() {
 	return;
 }
 
-void Path::draw() {
+void Path::draw(sf::RenderWindow *pWndw) {
 //    if( inUse )
 	for (int i = 0; i < nLegs_inUse; ++i)
 		if (ptLeg[i] >= 0.0f) {

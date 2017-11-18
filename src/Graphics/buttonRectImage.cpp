@@ -26,7 +26,7 @@ void buttonRectImage::assign_Sprite(sf::Sprite* p_Sprite) {
 	}
 }
 
-void buttonRectImage::draw(void) {
+void buttonRectImage::draw(sf::RenderWindow *pWndw) {
 	sf::IntRect srcRect;
 	srcRect.top = sel ? szY + 1 : 0;
 	srcRect.left = mo ? szX + 1 : 0;

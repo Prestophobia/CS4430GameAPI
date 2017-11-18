@@ -1,8 +1,5 @@
 #include "Graphics/button.h"
 
-// static vars INIT
-sf::RenderWindow* button::pWndw = NULL;
-
 button::button(void) {
 	posX = 0;
 	posY = 0;

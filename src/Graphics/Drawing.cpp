@@ -9,17 +9,18 @@
 
 #include "Graphics/Drawing.h"
 
-Drawing::Drawing(Animations &ganimators, Menu &gmenu) :
-		gsprites(ganimators.gsprites), gmenu(gmenu), gdata(ganimators.gdata), ganimators(
-				ganimators), gdatabase(ganimators.gdatabase) {
+Drawing::Drawing(sf::RenderWindow *pWndw, Animations &ganimators, Menu &gmenu) :
+		pWndw(pWndw), gsprites(ganimators.gsprites), gmenu(gmenu), gdata(
+				ganimators.gdata), ganimators(ganimators), gdatabase(
+				ganimators.gdatabase) {
 }
 
 void Drawing::gameDraw(sf::RenderWindow& rApp) {
-	gmenu.newButt.draw();        // game reset
-	gmenu.savedButt.draw();
+	gmenu.newButt.draw(pWndw);        // game reset
+	gmenu.savedButt.draw(pWndw);
 
 	if (gdata.gameOn) {
-		gmenu.saveGameButt.draw();
+		gmenu.saveGameButt.draw(pWndw);
 	}
 
 	rApp.draw(gsprites.boardSprite);
@@ -38,8 +39,8 @@ void Drawing::drawCheckers(sf::RenderWindow& rApp) {
 
 	if (gdata.reset)    // animated checker display
 	{
-		ganimators.wh_dealPath.draw();
-		ganimators.bk_dealPath.draw();
+		ganimators.wh_dealPath.draw(pWndw);
+		ganimators.bk_dealPath.draw(pWndw);
 		rApp.draw(gsprites.msg);
 	}
 
@@ -84,7 +85,7 @@ void Drawing::drawCheckers(sf::RenderWindow& rApp) {
 				}
 			}
 
-		ganimators.chObj.draw();
+		ganimators.chObj.draw(pWndw);
 
 		GameState currentState = gdatabase.getGameState();
 
@@ -116,7 +117,7 @@ void Drawing::drawCheckers(sf::RenderWindow& rApp) {
 //		if (aniPath.inUse)
 //			aniPath.draw();
 		if (ganimators.kingMePath.inUse)
-			ganimators.kingMePath.draw();
+			ganimators.kingMePath.draw(pWndw);
 	}
 
 	return;
