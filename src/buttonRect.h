@@ -9,7 +9,7 @@ public:
 	int szY;
 
 	// functions
-	virtual bool hit(void);
+	virtual bool hit(int mseX, int mseY);
 	virtual void draw(void) = 0;
 	void set_label(const sf::Text Label);
 

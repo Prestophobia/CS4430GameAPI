@@ -4,7 +4,7 @@
 class Leg {
 public:
 
-	float period;
+	float period = 0;
 
 	// functions
 	virtual float x(float t) = 0;

@@ -5,11 +5,11 @@
 
 class dragDropRect: public dragDrop {
 public:
-	int szX;
-	int szY;
+	int szX = 0;
+	int szY = 0;
 
 	// functions
-	bool hit(void); // pure virtual in base - called by grab()
+	bool hit(int mseX, int mseY); // pure virtual in base - called by grab()
 	void snap(void); // pure virtual in base
 	bool hitAnchor(int idx); // pure virtual in base - called by release()
 	void assign_Size(sf::Sprite* p_Sprite = NULL);

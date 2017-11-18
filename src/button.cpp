@@ -19,22 +19,22 @@ button::button(char Type, int PosX, int PosY) :
 button::~button(void) {
 }
 
-bool button::mseOver(void) {
+bool button::mseOver(int mseX, int mseY) {
 	switch (type) {
 	case 's':
-		if (!sel && hit())
+		if (!sel && hit(mseX, mseY))
 			mo = true;
 		else
 			mo = false;
 		break;
 	case 't':
-		if (hit())
+		if (hit(mseX, mseY))
 			mo = true;
 		else
 			mo = false;
 		break;
 	case 'm':
-		if (hit())
+		if (hit(mseX, mseY))
 			mo = true;
 		else
 			mo = sel = false;
@@ -43,24 +43,24 @@ bool button::mseOver(void) {
 	return mo;
 }
 
-bool button::hit_dn(void) {
+bool button::hit_dn(int mseX, int mseY) {
 	switch (type) {
 	case 's':
-		if (!sel && hit()) {
+		if (!sel && hit(mseX, mseY)) {
 			sel = true;
 			mo = false;
 		}
 		break;
 	case 't':
-		if (hit())
+		if (hit(mseX, mseY))
 			sel = !sel;
 		break;
 	case 'm':
-		if (hit())
+		if (hit(mseX, mseY))
 			sel = true;
 		break;
 	}
-	return hit();
+	return hit(mseX, mseY);
 } // end of hit_dn()
 
 void button::hit_up(void) {

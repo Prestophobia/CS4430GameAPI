@@ -26,15 +26,15 @@ void dragDropRect::assign_Size(sf::Sprite* p_Sprite) {
 	}
 }
 
-bool dragDropRect::hit(void) // pure virtual in base
+bool dragDropRect::hit(int mseX, int mseY) // pure virtual in base
 		{
-	if (r_mseX < posX)
+	if (mseX < posX)
 		return false;
-	if (r_mseX > posX + szX)
+	if (mseX > posX + szX)
 		return false;
-	if (r_mseY < posY)
+	if (mseY < posY)
 		return false;
-	if (r_mseY > posY + szY)
+	if (mseY > posY + szY)
 		return false;
 
 	return true;

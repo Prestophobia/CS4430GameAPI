@@ -7,10 +7,10 @@
 class linLeg: public Leg {
 public:
 
-	float posix;
-	float posiy;
-	float velix;
-	float veliy;
+	float posix = 0;
+	float posiy = 0;
+	float velix = 0;
+	float veliy = 0;
 
 	//** member functions **
 	virtual float x(float t);

@@ -7,14 +7,14 @@ buttonRect::buttonRect(char Type, int PosX, int PosY, int SzX, int SzY) :
 buttonRect::~buttonRect() {
 }
 
-bool buttonRect::hit(void) {
-	if (r_mseX < posX)
+bool buttonRect::hit(int mseX, int mseY) {
+	if (mseX < posX)
 		return false;
-	if (r_mseX > posX + szX)
+	if (mseX > posX + szX)
 		return false;
-	if (r_mseY < posY)
+	if (mseY < posY)
 		return false;
-	if (r_mseY > posY + szY)
+	if (mseY > posY + szY)
 		return false;
 
 	return true;

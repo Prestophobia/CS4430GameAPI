@@ -3,164 +3,27 @@
 #include <string>
 #include <vector>
 
-#include <SFML/Graphics.hpp>
-#include "sqlite_orm/sqlite_orm.h"
-
-#include "buttonRectImage.h"
 #include "buttonRectDrawn.h"
 #include "dragDropRect.h"
 #include "linLeg.h"
 #include "Path.h"
-#include "Font.h"
-#include "database.h"
 
-void EVENTcheck(sf::Event &event, sf::Window &window);
-int mseX = 0, mseY = 0;
-int w_szX = 800, w_szY = 600;
-int w_posX = 50, w_posY = 50;
+#include "Data/GameData.h"
 
-// static vars
-const int& button::r_mseX = mseX;
-const int& button::r_mseY = mseY;
-const int& dragDrop::r_mseX = mseX;
-const int& dragDrop::r_mseY = mseY;
+#include "Graphics/Sprites.h"
+#include "Graphics/Menu.h"
+#include "Graphics/Animations.h"
+#include "Graphics/Drawing.h"
 
-// buttons
-sf::Sprite buttSprite1;
-sf::Image buttImg1;
-sf::Texture buttTex1;
-buttonRectImage newButt('m', 50, 100, NULL); // start a new game
-buttonRectImage savedButt('m', 50, 170, NULL); // save the current game
-buttonRectImage saveGameButt('m', 50, 240, NULL); // start the saved game
+#include "Database/Database.h"
 
-//** dragDrop objects **
-sf::Sprite wh_chSprite; // player 1 = white
-sf::Image wh_chImg;
-sf::Texture wh_chTex;
-sf::Sprite wh_kSprite;
-sf::Image wh_kingImg;
-sf::Texture wh_kingTex;
+#include "Actions/MenuHit.h"
+#include "Actions/GameHit.h"
 
-sf::Sprite bk_chSprite; // player 0 = black
-sf::Image bk_chImg;
-sf::Texture bk_chTex;
-sf::Sprite bk_kSprite;
-sf::Image bk_kingImg;
-sf::Texture bk_kingTex;
-
-// database file
-auto database = sqlite_orm::make_storage(":memory:",
-		sqlite_orm::make_table("Checker_Positions",
-				sqlite_orm::make_column("Position", &CheckerPos::pos,
-						sqlite_orm::primary_key()),
-				sqlite_orm::make_column("Color", &CheckerPos::color),
-				sqlite_orm::make_column("King", &CheckerPos::king)),
-		sqlite_orm::make_table("Game_State",
-				sqlite_orm::make_column("ID", &GameState::id,
-						sqlite_orm::primary_key()),
-				sqlite_orm::make_column("Turn", &GameState::turn)),
-		sqlite_orm::make_table("Checker_Record",
-				sqlite_orm::make_column("ID", &CheckerRecord::id,
-						sqlite_orm::primary_key()),
-				sqlite_orm::make_column("Position", &CheckerRecord::pos),
-				sqlite_orm::make_column("Color", &CheckerRecord::color),
-				sqlite_orm::make_column("King", &CheckerRecord::king),
-				sqlite_orm::make_column("Time", &CheckerRecord::time)));
-
-dragDropRect chObj(200, 200, NULL); // the user moved checker
-
-// a checker board
-const int Nanchors = 32; // use for checker board
-std::pair<int, int> anchorArr1[Nanchors]; // anchor locations for dragDrop objects
-//char checkerPos[32]; // 'b'=black, 'w'=white, 'n'=none (open square)
-
-int Nmoves = 5; // use for legal move anchor list
-int moveIdxList[5]; // anchor indexes for legal moves
-
-sf::Sprite boardSprite;
-sf::Texture boardTex;
-int ch_bdPosX = 150; // dimensional data
-int ch_bdPosY = 50;
-int ch_bdOffX = 44;
-int ch_bdOffY = 43;
-float sqrSzX = 51.75f;
-float sqrSzY = 50.f;
-int chSz = 40; // checker size
-
-// turn logic
-bool turn = true; // true = white, false = black
-bool jumpMade = false, canJump = false;
-bool reset = false; // reset to new game
-bool testMode = false; // read checker positions from a file
-bool gameOn = false; // true once a game selection is made
-bool gameOver = false; // true once all checkers of one color are captured
-bool pause = false;
-
-// functions
-bool LoadImages(void);
-void INITbuttons(void);
-void INITboard(void);
-bool INITcheckerPositions_NEW(void); // for a new game
-bool INITcheckerPositions_SAVED(); // returns false on bad file read attempt
-void INITdragDrops(void);
-void INITtext(void); // check
-bool saveGameToFile();
-void saveDatabase(std::string saveFileName, void (*progressFunction)(int, int));
-void loadDatabase(std::string saveFileName, void (*progressFunction)(int, int));
-void drawCheckers(sf::RenderWindow& rApp);
-
-void gameLogic(void);
-void gameDraw(sf::RenderWindow& rApp);
-void gameHitDown(void);
-void gameHitUp(void);
-void gameCapture_SplitAniLogic(void);
-void gameKingMeAniLogic(void);
-bool menuHitDown(void); // returns false if file I/O error
-void menuHitUp(void);
-
-int hitAnchor(bool Turn); // finds which anchor was hit. Returns anchor index if valid anchor was hit. Returns -1 if not.
-bool fillMoveList(int idx); // called when a checker is grabbed for a move. Returns true if a jump may be made
-bool didJump(int hm_0, int hm_f, int& jumpIdx);
-
-// checker  setup animation
-Path wh_dealPath(12, 50, 3, 400.0f, -40.0f);
-Path bk_dealPath(12, 50, 3, 400.0f, 620.0f);
-void ALLOC_paths(void);
-void INITpathLegs(void);
-
-sf::Text msg;
-sf::Text msg_Turn;
-sf::Text msg_Whites;
-sf::Text msg_Blacks;
-sf::Text msg_WELCOME;
-sf::Text msg_GAMEOVER;
-sf::Text msg_WHITEWINS;
-sf::Text msg_BLACKWINS;
-sf::Text* p_FXmsg = &msg_WELCOME;
-int textFXdelay = 30; // for "WELCOME"
-bool textFX = true; // and "GAME OVER" message effects
-bool textExpand(sf::Text& r_text, float scale_i, float scale_f, int Nframes,
-		bool reset = false);
-bool textFade(sf::Text& r_text, int alpha_i, int alpha_f, int Nframes,
-		bool reset = false);
-
-// checker capture animation
-bool animateCapt = false; // true in LBUTT_DN. false in frame logic
-char colorCapt; // 'w' or 'b'
-float wh_captX = 150.0f, wh_captY = 550.0f; // base position for captured checkers
-float bk_captX = 150.0f, bk_captY = 5.0f;
-float capt_dx = 50.0f; // distance between captured checkers
-int Nwh_capt = 0, Nbk_capt = 0;
-Path aniPath(1, 0, 0, 100.0f, 100.0f); // start using this!!
-linLeg* p_aniPathLeg = NULL; // for calling INITlin() on aniPath leg
-
-Path kingMePath(1, 0, 0, 100.0f, 100.0f); // start using this!!
-linLeg* p_kingMePathLeg = NULL; // for calling INITlin() on aniPath leg
-
-// other animations
-bool justKinged = false; // true in LBUTT_DN. false in frame logic
-bool animateSplit = false; // split a captured king in two. true and false in frame logic
-bool animateKing = false;
+void checkEvents(sf::Event &event, sf::Window &window, GameData &gdata,
+		Animations &ganimators, Menu &gmenu, Database &gdatabase,
+		MenuHit &gmenuHit, GameHit &ggameHit);
+void gameLogic(Animations &ganimators);
 
 template<class T>
 float to_sf_string(sf::String& strArg, T x) // returns position of end of strArg
@@ -175,16 +38,26 @@ float to_sf_string(sf::String& strArg, T x) // returns position of end of strArg
 
 int main(int argc, char *argv[]) {
 	try {
-		// load images
-		if (!LoadImages()) {
-			return 0; // return error code!
-		}
 
-		// Connect database
-		database.sync_schema(true);
+		// TODO Make capture animation work
+		// TODO Make database on same level with sprites (break off inits)
+		Database gdatabase;
+		Sprites gsprites(150, 50);
+		gsprites.initText();
+		Menu gmenu(gsprites);
+		gmenu.initButtons();
+		GameData gdata(gsprites);
+		gdata.initBoard();
+		Animations ganimators(gdata, gdatabase);
+		ganimators.initPaths();
+		ganimators.initDragDrops();
+		MenuHit gmenuHit(ganimators, gmenu);
+		GameHit ggameHit(ganimators);
+		Drawing gdrawer(ganimators, gmenu);
 
 		// create the SFML window
-		sf::RenderWindow window(sf::VideoMode(w_szX, w_szY), "Checkers");
+		sf::RenderWindow window(sf::VideoMode(gdata.w_szX, gdata.w_szY),
+				"Checkers");
 		window.setActive();
 
 		// local vars
@@ -192,37 +65,33 @@ int main(int argc, char *argv[]) {
 		sf::Clock frClock;
 		frClock.restart();
 
-		// INIT stuff
 		button::pWndw = &window;
 		dragDrop::pWndw = &window;
 		Path::pWndw = &window;
-		INITboard();
-		ALLOC_paths(); // dynamic allocation of legs to the deal paths
-		INITbuttons();
-		INITtext();
-		INITdragDrops();
-		wh_dealPath.inUse = false;
-		bk_dealPath.inUse = false;
+		ganimators.wh_dealPath.inUse = false;
+		ganimators.bk_dealPath.inUse = false;
 
 		window.setVerticalSyncEnabled(true); // default = false
 
 		if (window.isOpen()) {
 			do {
-				if (!pause && frClock.getElapsedTime().asSeconds() > frPeriod) {
+				if (!gdata.pause
+						&& frClock.getElapsedTime().asSeconds() > frPeriod) {
 					frClock.restart();
-					gameLogic();
+					gameLogic(ganimators);
 
 					// draw stuff
 					window.clear(sf::Color(0, 50, 100)); // Color bkgd
 
-					gameDraw(window);
+					gdrawer.gameDraw(window);
 
 					window.display();
 				}
 
 				sf::Event event;
 				while (window.pollEvent(event)) {
-					EVENTcheck(event, window);
+					checkEvents(event, window, gdata, ganimators, gmenu,
+							gdatabase, gmenuHit, ggameHit);
 				}
 			} while (window.isOpen());
 		}
@@ -233,39 +102,41 @@ int main(int argc, char *argv[]) {
 	return 0;
 } // end of main
 
-void EVENTcheck(sf::Event &event, sf::Window &window) {
+void checkEvents(sf::Event &event, sf::Window &window, GameData &gdata,
+		Animations &ganimators, Menu &gmenu, Database &gdatabase,
+		MenuHit &gmenuHit, GameHit &ggameHit) {
 	switch (event.type) {
 	case sf::Event::Closed:
 		window.close();
 		break;
 	case sf::Event::MouseButtonPressed:
-		if (!pause && event.mouseButton.button == sf::Mouse::Left) {
-			if (!menuHitDown()) {
+		if (!gdata.pause && event.mouseButton.button == sf::Mouse::Left) {
+			if (!gmenuHit.menuHitDown()) {
 				window.close(); // file I/O error
 			}
-			gameHitDown();
+			ggameHit.gameHitDown();
 		}
 		break;
 	case sf::Event::MouseButtonReleased:
-		if (!pause && event.mouseButton.button == sf::Mouse::Left) {
-			menuHitUp();
-			gameHitUp();
+		if (!gdata.pause && event.mouseButton.button == sf::Mouse::Left) {
+			gmenuHit.menuHitUp();
+			ggameHit.gameHitUp();
 		}
 		break;
 	case sf::Event::MouseMoved:
-		mseX = event.mouseMove.x;
-		mseY = event.mouseMove.y;
+		gdata.mseX = event.mouseMove.x;
+		gdata.mseY = event.mouseMove.y;
 
 		// button mouseovers
-		newButt.mseOver();
-		savedButt.mseOver();
+		gmenu.newButt.mseOver(gdata.mseX, gdata.mseY);
+		gmenu.savedButt.mseOver(gdata.mseX, gdata.mseY);
 
-		if (gameOn) {
-			saveGameButt.mseOver();
+		if (gdata.gameOn) {
+			gmenu.saveGameButt.mseOver(gdata.mseX, gdata.mseY);
 		}
 
 		// dragDrop object move
-		chObj.drag();
+		ganimators.chObj.drag(gdata.mseX, gdata.mseY);
 
 		break;
 	case sf::Event::KeyPressed:
@@ -275,7 +146,7 @@ void EVENTcheck(sf::Event &event, sf::Window &window) {
 			window.close();
 			break;
 		case sf::Keyboard::P:			// provides a play/pause function
-			pause = !pause;			// toggle state
+			gdata.pause = !gdata.pause;			// toggle state
 			break;
 		default:
 			break;
@@ -286,1240 +157,57 @@ void EVENTcheck(sf::Event &event, sf::Window &window) {
 	}
 }
 
-bool LoadImages(void) {
-// font
-	if (!font.loadFromFile("images/Enchanted Land.otf"))
-		return false;
-
-// buttons
-	if (!buttImg1.loadFromFile("images/buttonsImageAlt.png"))// 33x22px - from Ultifinitus
-		return false;
-	buttImg1.createMaskFromColor(sf::Color(0, 0, 0));
-	buttTex1.loadFromImage(buttImg1);
-	buttSprite1.setTexture(buttTex1);
-
-// dragDrop objects
-	if (!wh_chImg.loadFromFile("images/white_checker.png"))		// 40 x 40 px
-		return false;
-	wh_chImg.createMaskFromColor(sf::Color(0, 0, 0));
-	wh_chTex.loadFromImage(wh_chImg);
-	wh_chSprite.setTexture(wh_chTex);
-
-	if (!wh_kingImg.loadFromFile("images/white_checker_King.png"))// 40 x 40 px
-		return false;
-	wh_kingImg.createMaskFromColor(sf::Color(0, 0, 0));
-	wh_kingTex.loadFromImage(wh_kingImg);
-	wh_kSprite.setTexture(wh_kingTex);
-
-	if (!bk_chImg.loadFromFile("images/black_checker.png"))		// 40 x 40 px
-		return false;
-	bk_chImg.createMaskFromColor(sf::Color(0, 0, 0));
-	bk_chTex.loadFromImage(bk_chImg);
-	bk_chSprite.setTexture(bk_chTex);
-
-	if (!bk_kingImg.loadFromFile("images/black_checker_King.png"))// 40 x 40 px
-		return false;
-	bk_kingImg.createMaskFromColor(sf::Color(0, 0, 0));
-	bk_kingTex.loadFromImage(bk_kingImg);
-	bk_kSprite.setTexture(bk_kingTex);
-
-// a checker board
-	if (!boardTex.loadFromFile("images/checker_board.jpg"))		// 499 x 491 px
-		return false;
-	boardSprite.setTexture(boardTex);
-	boardSprite.setPosition(static_cast<float>(ch_bdPosX),
-			static_cast<float>(ch_bdPosY));
-
-	return true;
-}
-
-void INITbuttons(void) {
-	newButt.assign_Sprite(&buttSprite1);
-	newButt.INITlabel(sf::Text("Start New Game", font, 16),
-			sf::Color(0, 255, 0), 'b');
-
-	savedButt.assign_Sprite(&buttSprite1);
-	savedButt.INITlabel(sf::Text("Load Saved Game", font, 16),
-			sf::Color(0, 255, 0), 'b');
-
-	saveGameButt.assign_Sprite(&buttSprite1);
-	saveGameButt.INITlabel(sf::Text("Save This Game", font, 16),
-			sf::Color(0, 255, 0), 'b');
-
-	return;
-}
-
-void INITboard(void) {
-// anchor locations
-//  float sqrSzX = 51.75 so /2 = 26
-//  float sqrSzY = 50.5 so /2 = 25
-
-	sqrSzX += 0.7f;			// tweaking values
-	sqrSzY += 0.7f;
-
-// all 32 anchors on the board
-	int x0 = ch_bdPosX + ch_bdOffX + 26;
-	int y0 = ch_bdPosY + ch_bdOffY + 25;
-	for (int i = 0; i < Nanchors; ++i) {
-		if ((i / 4) % 2)    // odd rows
-			anchorArr1[i].first = x0 + (int) (sqrSzX * (2 * (i % 4)));
-		else
-			anchorArr1[i].first = x0 + (int) (sqrSzX * (1 + 2 * (i % 4)));
-
-		anchorArr1[i].second = y0 + (int) (sqrSzY * (i / 4));
+void gameLogic(Animations &ganimators) {
+	// the checker deal animation
+	if (ganimators.gdata.reset) {
+		ganimators.wh_dealPath.move();
+		ganimators.bk_dealPath.move();
+		if (!ganimators.wh_dealPath.inUse && !ganimators.bk_dealPath.inUse) // timer went off. Animation is done
+				{
+			ganimators.gdata.reset = false;
+			ganimators.gdata.gameOn = true;
+		}
 	}
 
-	return;
-}
-
-bool saveGameToFile() {
-	return true;
-}
-
-bool INITcheckerPositions_NEW(void) {
-// initial checker positions
-	database.drop_table("Checker_Positions");
-	database.drop_table("Game_State");
-	database.drop_table("Checker_Record");
-	database.sync_schema();
-	try {
-		for (int i = 0; i < 12; ++i) {
-			database.insert(CheckerPos(i, false, "White"));
-		}
-
-		for (int i = 12; i < 20; i++) {
-			database.insert(CheckerPos(i, false, ""));
-		}
-
-		for (int i = 20; i < 32; ++i) {
-			database.insert(CheckerPos(i, false, "Black"));
-		}
-	} catch (std::exception &e) {
-		perror("INITcheckerPositions_NEW: ");
-		perror(e.what());
+	if ((ganimators.animateCapt || ganimators.animateSplit)
+			&& ganimators.gdata.gameOn) {
+		ganimators.gameCapture_SplitAniLogic();
 	}
 
-	turn = true;
-	database.insert(GameState(1, "White"));
-	Nwh_capt = Nbk_capt = 0;
+	// test for end of game
+	if ((ganimators.Nwh_capt == 12 || ganimators.Nbk_capt == 12)
+			&& !ganimators.gdata.gameOver) {
+		ganimators.gdata.gameOver = true;
+		ganimators.textFX = true;
+		ganimators.textFXdelay = 30;
 
-	return true;
-}
-
-bool INITcheckerPositions_SAVED() {
-	loadDatabase("save.db", 0);
-	GameState currentState;
-	try {
-		currentState = database.get<GameState>(1);
-		if (currentState.turn == "White") {
-			turn = true;
-		} else if (currentState.turn == "Black") {
-			turn = false;
-		}
-	} catch (std::exception &e) {
-		perror("INITcheckerPositions_SAVED: ");
-		perror(e.what());
-	}
-
-	int Nwh_reg = 0;
-	int Nwh_k = 0;
-	int Nbk_reg = 0;
-	int Nbk_k = 0;
-	for (auto checker : database.get_all<CheckerPos>()) {
-		if (checker.color == "White") {
-			if (checker.king) {
-				Nwh_k++;
-			} else {
-				Nwh_reg++;
-			}
+		if (ganimators.Nwh_capt == 12) {
+			ganimators.gsprites.p_FXmsg = &ganimators.gsprites.msg_BLACKWINS;
 		} else {
-			if (checker.king) {
-				Nbk_k++;
-			} else {
-				Nbk_reg++;
-			}
-		}
-	}
-
-	Nwh_capt = 12 - Nwh_reg - 2 * Nwh_k;
-	Nbk_capt = 12 - Nbk_reg - 2 * Nbk_k;
-
-	return true;
-}
-
-/*
- * Backs up the database 5 pages at a time to saveFile.  Database is still usable during process.
- * progressFunction (numPagesLeft, numTotalPages)
- */
-void saveDatabase(std::string saveFileName,
-		void (*progressFunction)(int, int)) {
-	int sqliteReturnCode; /* Function return code */
-	sqlite3 *saveFilePtr; /* Database connection opened on saveFile */
-	sqlite3_backup *sqliteBackupObject; /* Backup handle used to copy data */
-	sqlite3 *originalDatabase = database.getConnection()->get_db();
-
-	/* Open the database file identified by saveFile. */
-	sqliteReturnCode = sqlite3_open(saveFileName.c_str(), &saveFilePtr);
-	if (sqliteReturnCode == SQLITE_OK) {
-
-		/* Open the sqlite3_backup object used to accomplish the transfer */
-		sqliteBackupObject = sqlite3_backup_init(saveFilePtr, "main",
-				originalDatabase, "main");
-		if (sqliteBackupObject) {
-
-			/* Each iteration of this loop copies 5 database pages from database
-			 ** memoryDBPtr to the backup database. If the return value of backup_step()
-			 ** indicates that there are still further pages to copy, sleep for
-			 ** 250 ms before repeating. */
-			do {
-				sqliteReturnCode = sqlite3_backup_step(sqliteBackupObject, 5);
-				if (progressFunction != 0) {
-					progressFunction(
-							sqlite3_backup_remaining(sqliteBackupObject),
-							sqlite3_backup_pagecount(sqliteBackupObject));
-				}
-				if (sqliteReturnCode == SQLITE_OK
-						|| sqliteReturnCode == SQLITE_BUSY
-						|| sqliteReturnCode == SQLITE_LOCKED) {
-					sqlite3_sleep(250);
-				}
-			} while (sqliteReturnCode == SQLITE_OK
-					|| sqliteReturnCode == SQLITE_BUSY
-					|| sqliteReturnCode == SQLITE_LOCKED);
-
-			(void) sqlite3_backup_finish(sqliteBackupObject);
-		}
-		sqliteReturnCode = sqlite3_errcode(saveFilePtr);
-	}
-
-	/* Close the database connection opened on database file saveFile
-	 ** and return the result of this function. */
-	(void) sqlite3_close(saveFilePtr);
-}
-
-/*
- * Loads the database 5 pages at a time to memory.  Database is still usable during process.
- * progressFunction (numPagesLeft, numTotalPages)
- */
-void loadDatabase(std::string saveFileName,
-		void (*progressFunction)(int, int)) {
-	int sqliteReturnCode; /* Function return code */
-	sqlite3 *saveFilePtr; /* Database connection opened on saveFile */
-	sqlite3_backup *sqliteBackupObject; /* Backup handle used to copy data */
-	sqlite3 *originalDatabase = database.getConnection()->get_db();
-
-	/* Open the database file identified by saveFile. */
-	sqliteReturnCode = sqlite3_open(saveFileName.c_str(), &saveFilePtr);
-	if (sqliteReturnCode == SQLITE_OK) {
-
-		/* Open the sqlite3_backup object used to accomplish the transfer */
-		sqliteBackupObject = sqlite3_backup_init(originalDatabase, "main",
-				saveFilePtr, "main");
-		if (sqliteBackupObject) {
-
-			/* Each iteration of this loop copies 5 database pages from database
-			 ** memoryDBPtr to the backup database. If the return value of backup_step()
-			 ** indicates that there are still further pages to copy, sleep for
-			 ** 250 ms before repeating. */
-			do {
-				sqliteReturnCode = sqlite3_backup_step(sqliteBackupObject, 5);
-				if (progressFunction != 0) {
-					progressFunction(
-							sqlite3_backup_remaining(sqliteBackupObject),
-							sqlite3_backup_pagecount(sqliteBackupObject));
-				}
-				if (sqliteReturnCode == SQLITE_OK
-						|| sqliteReturnCode == SQLITE_BUSY
-						|| sqliteReturnCode == SQLITE_LOCKED) {
-					sqlite3_sleep(250);
-				}
-			} while (sqliteReturnCode == SQLITE_OK
-					|| sqliteReturnCode == SQLITE_BUSY
-					|| sqliteReturnCode == SQLITE_LOCKED);
-
-			(void) sqlite3_backup_finish(sqliteBackupObject);
-		}
-		sqliteReturnCode = sqlite3_errcode(saveFilePtr);
-	}
-
-	/* Close the database connection opened on database file saveFile
-	 ** and return the result of this function. */
-	(void) sqlite3_close(saveFilePtr);
-	database.sync_schema(true);
-}
-
-void INITdragDrops(void) {
-// call set_anchors() before assign_size()
-	chObj.set_anchors(anchorArr1, Nanchors, 0);    // currently Nanchors = 32
-	chObj.assign_Size(&wh_chSprite);
-
-	chSz = chObj.szX;
-
-	return;
-}
-
-void INITtext(void) {
-	msg.setString("Loading");
-	msg.setPosition(300.0f, 30.0f);
-	msg.setFont(font);
-	msg.setFillColor(sf::Color(255, 255, 255));
-	msg.setCharacterSize(16.0);
-
-	msg_Whites.setString("White's");
-	msg_Whites.setPosition(700.0f, 280.0f);
-	msg_Whites.setFont(font);
-	msg_Whites.setFillColor(sf::Color(255, 255, 255));
-	msg_Whites.setCharacterSize(18.0);
-
-	msg_Blacks.setString("Black's");
-	msg_Blacks.setPosition(700.0f, 280.0f);
-	msg_Blacks.setFont(font);
-	msg_Blacks.setFillColor(sf::Color(255, 255, 255));
-	msg_Blacks.setCharacterSize(18.0);
-
-	msg_Turn.setString("Turn");
-	msg_Turn.setPosition(720.0f, 295.0f);
-	msg_Turn.setFont(font);
-	msg_Turn.setFillColor(sf::Color(255, 255, 255));
-	msg_Turn.setCharacterSize(16.0);
-
-	msg_WELCOME.setString("WELCOME");
-	msg_WELCOME.setFont(font);
-	msg_WELCOME.setFillColor(sf::Color(0, 100, 200));
-	msg_WELCOME.setPosition(320.0f, 255.0f);
-
-	msg_GAMEOVER.setString("GAME OVER");
-	msg_GAMEOVER.setFont(font);
-	msg_GAMEOVER.setFillColor(sf::Color(0, 100, 200));
-	msg_GAMEOVER.setPosition(320.0f, 255.0f);
-
-	msg_WHITEWINS.setString("WHITE WINS!");
-	msg_WHITEWINS.setFont(font);
-	msg_WHITEWINS.setFillColor(sf::Color(0, 100, 200));
-	msg_WHITEWINS.setPosition(320.0f, 255.0f);
-
-	msg_BLACKWINS.setString("BLACK WINS!");
-	msg_BLACKWINS.setFont(font);
-	msg_BLACKWINS.setFillColor(sf::Color(0, 100, 200));
-	msg_BLACKWINS.setPosition(320.0f, 255.0f);
-}
-
-void ALLOC_paths(void) {
-	int i = 0;    // for looping
-
-// for the checker deal animation
-// allocate and INIT Legs. The array of Leg*'s were allocated in the Path ctor
-	for (i = 0; i < wh_dealPath.nLegs; ++i) {
-		wh_dealPath.ppLeg[i] = new linLeg;
-		wh_dealPath.ppSprite[i] = &wh_chSprite;
-	}
-
-	for (i = 0; i < bk_dealPath.nLegs; ++i) {
-		bk_dealPath.ppLeg[i] = new linLeg;
-		bk_dealPath.ppSprite[i] = &bk_chSprite;
-	}
-
-// for the one-legged anis in the game ( capture, king split, "king me" )
-	p_aniPathLeg = new linLeg; // used for both capture and kink split animations
-	*aniPath.ppLeg = p_aniPathLeg;
-
-	p_kingMePathLeg = new linLeg;
-	*kingMePath.ppLeg = p_kingMePathLeg;
-
-	return;
-}
-
-// call after INITcheckerPositions()
-void INITpathLegs(void) {
-	int i = 0;    // for looping
-	int Nwh_ch = 0, Nbk_ch = 0;
-	int Nwh_k = 0, Nbk_k = 0;
-	float hSz = chSz / 2.0f;
-
-	for (i = 0; i < 32; ++i) {
-		CheckerPos currentCheckerPos;
-		try {
-			currentCheckerPos = database.get<CheckerPos>(i + 1);
-		} catch (std::exception &e) {
-			perror("INITpathLegs: ");
-			perror(e.what());
-		}
-		if (currentCheckerPos.color == "White") {
-			if (!currentCheckerPos.king) {
-				wh_dealPath.ppLeg[Nwh_ch]->INIT(400.0f - hSz, -20.0f - hSz,
-						static_cast<float>(anchorArr1[i].first) - hSz,
-						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-				wh_dealPath.ppSprite[Nwh_ch++] = &wh_chSprite;
-			} else {
-				wh_dealPath.ppLeg[Nwh_ch]->INIT(400.0f - hSz, -20.0f - hSz,
-						static_cast<float>(anchorArr1[i].first) - hSz,
-						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-				wh_dealPath.ppSprite[Nwh_ch++] = &wh_kSprite;
-				++Nwh_k;
-			}
-		} else if (currentCheckerPos.color == "Black") {
-			if (!currentCheckerPos.king) {
-				bk_dealPath.ppLeg[Nbk_ch]->INIT(400.0f - hSz, 620.0f - hSz,
-						static_cast<float>(anchorArr1[i].first) - hSz,
-						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-				bk_dealPath.ppSprite[Nbk_ch++] = &bk_chSprite;
-			} else {
-				bk_dealPath.ppLeg[Nbk_ch]->INIT(400.0f - hSz, 620.0f - hSz,
-						static_cast<float>(anchorArr1[i].first) - hSz,
-						static_cast<float>(anchorArr1[i].second) - hSz, 30.0f);
-				bk_dealPath.ppSprite[Nbk_ch++] = &bk_kSprite;
-				++Nbk_k;
-			}
-		}
-	}
-
-	wh_dealPath.nLegs_inUse = 12 - Nwh_k;
-	bk_dealPath.nLegs_inUse = 12 - Nbk_k;
-
-	for (i = Nwh_ch; i < wh_dealPath.nLegs_inUse; ++i) {
-		wh_dealPath.ppLeg[i]->INIT(820.0f, wh_captY,
-				wh_captX + (i - Nwh_ch) * capt_dx, wh_captY, 30.0f);
-		wh_dealPath.ppSprite[i] = &wh_chSprite;
-	}
-
-	for (i = Nbk_ch; i < bk_dealPath.nLegs_inUse; ++i) {
-		bk_dealPath.ppLeg[i]->INIT(820.0f, bk_captY,
-				bk_captX + (i - Nbk_ch) * capt_dx, bk_captY, 30.0f);
-		bk_dealPath.ppSprite[i] = &bk_chSprite;
-	}
-
-	return;
-}
-
-// returns true if a jump may be made
-bool fillMoveList(int hm)    // called when a checker is grabbed for a move
-		{
-	Nmoves = 0;    // global
-// locals
-	CheckerPos currentCheckerPos;
-	try {
-		currentCheckerPos = database.get<CheckerPos>(hm + 1);
-	} catch (std::exception &e) {
-		perror("fillMoveList: ");
-		perror(e.what());
-	}
-	if (currentCheckerPos.color != "") {
-		std::string opCol = turn ? "Black" : "White";
-		try {
-			if (turn || currentCheckerPos.king)    // white or king
-					{
-//        if( hm < 28 )// not in bottom row
-				if (hm < 28 && !jumpMade)    // not in bottom row
-						{
-					if (hm % 8 == 3 || hm % 8 == 4)    // is edge position
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						if (checkCheckerPos4.color == "") {
-							moveIdxList[Nmoves++] = hm + 4;
-						}
-					} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5 )
-							{
-						auto checkCheckerPos3 = database.get<CheckerPos>(
-								hm + 1 + 3);
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						if (checkCheckerPos3.color == "") {
-							moveIdxList[Nmoves++] = hm + 3;
-						}
-						if (checkCheckerPos4.color == "") {
-							moveIdxList[Nmoves++] = hm + 4;
-						}
-					} else    // even row ( 0, 2, 4, 6 )
-					{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						auto checkCheckerPos5 = database.get<CheckerPos>(
-								hm + 1 + 5);
-						if (checkCheckerPos4.color == "") {
-							moveIdxList[Nmoves++] = hm + 4;
-						}
-						if (checkCheckerPos5.color == "") {
-							moveIdxList[Nmoves++] = hm + 5;
-						}
-					}
-				}
-				if (hm < 24)    // check for jumps
-						{
-					if (hm % 8 == 3)    // on right edge
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						auto checkCheckerPos7 = database.get<CheckerPos>(
-								hm + 1 + 7);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos7.color == "") { // a jump over hm+4 to hm+7 can be made
-							moveIdxList[Nmoves++] = hm + 7;
-						}
-					} else if (hm % 8 == 4)    // on left edge
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						auto checkCheckerPos9 = database.get<CheckerPos>(
-								hm + 1 + 9);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos9.color == "") { // a jump over hm+4 to hm+7 can be made
-							moveIdxList[Nmoves++] = hm + 9;
-						}
-					} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5 )
-							{
-						auto checkCheckerPos3 = database.get<CheckerPos>(
-								hm + 1 + 3);
-						auto checkCheckerPos7 = database.get<CheckerPos>(
-								hm + 1 + 7);
-						if (checkCheckerPos3.color == opCol
-								&& checkCheckerPos7.color == "") {
-							moveIdxList[Nmoves++] = hm + 7;
-						}
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						auto checkCheckerPos9 = database.get<CheckerPos>(
-								hm + 1 + 9);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos9.color == "") {
-							moveIdxList[Nmoves++] = hm + 9;
-						}
-					} else    // even row ( 0, 2, 4 )
-					{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 + 4);
-						auto checkCheckerPos7 = database.get<CheckerPos>(
-								hm + 1 + 7);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos7.color == "") {
-							moveIdxList[Nmoves++] = hm + 7;
-						}
-						auto checkCheckerPos5 = database.get<CheckerPos>(
-								hm + 1 + 5);
-						auto checkCheckerPos9 = database.get<CheckerPos>(
-								hm + 1 + 9);
-						if (checkCheckerPos5.color == opCol
-								&& checkCheckerPos9.color == "") {
-							moveIdxList[Nmoves++] = hm + 9;
-						}
-					}
-				}    // end check for jumps
-			}
-			if (!turn || currentCheckerPos.king)    // black or king
-					{
-				//     if( hm >3 )// not in top row
-				if (hm > 3 && !jumpMade)    // not in top row
-						{
-					if (hm % 8 == 3 || hm % 8 == 4)    // is edge position
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						if (checkCheckerPos4.color == "") {
-							moveIdxList[Nmoves++] = hm - 4;
-						}
-					} else if ((hm / 4) % 2)    // odd row ( 1, 3, 5, 7 )
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						auto checkCheckerPos5 = database.get<CheckerPos>(
-								hm + 1 - 5);
-						if (checkCheckerPos4.color == "") {
-							moveIdxList[Nmoves++] = hm - 4;
-						}
-						if (checkCheckerPos5.color == "") {
-							moveIdxList[Nmoves++] = hm - 5;
-						}
-					} else    // even row ( 2, 4, 6 )
-					{
-						auto checkCheckerPos3 = database.get<CheckerPos>(
-								hm + 1 - 3);
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						if (checkCheckerPos3.color == "") {
-							moveIdxList[Nmoves++] = hm - 3;
-						}
-						if (checkCheckerPos4.color == "") {
-							moveIdxList[Nmoves++] = hm - 4;
-						}
-					}
-				}
-				if (hm > 7)    // check for jumps
-						{
-					if (hm % 8 == 3)    // on right edge
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						auto checkCheckerPos9 = database.get<CheckerPos>(
-								hm + 1 - 9);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos9.color == "") { // a jump over hm+4 to hm+7 can be made
-							moveIdxList[Nmoves++] = hm - 9;
-						}
-					} else if (hm % 8 == 4)    // on left edge
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						auto checkCheckerPos7 = database.get<CheckerPos>(
-								hm + 1 - 7);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos7.color == "") { // a jump over hm+4 to hm+7 can be made
-							moveIdxList[Nmoves++] = hm - 7;
-						}
-					} else if ((hm / 4) % 2)    // odd row ( 3, 5, 7 )
-							{
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						auto checkCheckerPos7 = database.get<CheckerPos>(
-								hm + 1 - 7);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos7.color == "") {
-							moveIdxList[Nmoves++] = hm - 7;
-						}
-						auto checkCheckerPos5 = database.get<CheckerPos>(
-								hm + 1 - 5);
-						auto checkCheckerPos9 = database.get<CheckerPos>(
-								hm + 1 - 9);
-						if (checkCheckerPos5.color == opCol
-								&& checkCheckerPos9.color == "") {
-							moveIdxList[Nmoves++] = hm - 9;
-						}
-					} else    // even row ( 0, 2, 4 )
-					{
-						auto checkCheckerPos3 = database.get<CheckerPos>(
-								hm + 1 - 3);
-						auto checkCheckerPos7 = database.get<CheckerPos>(
-								hm + 1 - 7);
-						if (checkCheckerPos3.color == opCol
-								&& checkCheckerPos7.color == "") {
-							moveIdxList[Nmoves++] = hm - 7;
-						}
-						auto checkCheckerPos4 = database.get<CheckerPos>(
-								hm + 1 - 4);
-						auto checkCheckerPos9 = database.get<CheckerPos>(
-								hm + 1 - 9);
-						if (checkCheckerPos4.color == opCol
-								&& checkCheckerPos9.color == "") {
-							moveIdxList[Nmoves++] = hm - 9;
-						}
-					}
-				}    // end check for jumps
-			}
-		} catch (std::exception &e) {
-			perror("fillMoveList: ");
-			perror(e.what());
-		}
-	}
-
-// check if any jump moves were found
-	for (int i = 0; i < Nmoves; ++i) {
-		//        for white                           for black
-		if ((moveIdxList[i] - hm > 5) || (moveIdxList[i] - hm < -5)) // jump found
-			return true;
-	}
-
-	return false;    // no jumps found
-}    // end of fillMoveList()
-
-bool didJump(int hm_0, int hm_f, int& jumpIdx) // returns true if a jump was made and assigns jumpIdx = space# jumped
-		{
-//     moved up or down only 1 row
-	if ((hm_f - hm_0 >= -5) && (hm_f - hm_0 <= 5))
-		return false;    // no jump was made
-
-//    bool isKing = checkerPos[hm_f] == 'W' || checkerPos[hm_f] == 'B';
-
-	if (hm_f - hm_0 > 5)    //  jump downward
-			{
-		if ((hm_0 / 4) % 2)    // moved from odd row
-				{
-			if (hm_f - hm_0 == 7)
-				jumpIdx = hm_0 + 3;
-			else
-				jumpIdx = hm_0 + 4;
-		} else    // moved from even row
-		{
-			if (hm_f - hm_0 == 7)
-				jumpIdx = hm_0 + 4;
-			else
-				jumpIdx = hm_0 + 5;
-		}
-		return true;
-	}
-
-	if (hm_f - hm_0 < -5)    //  jump upward
-			{
-		if ((hm_0 / 4) % 2)    // moved from odd row
-				{
-			if (hm_0 - hm_f == 7)
-				jumpIdx = hm_f + 3;
-			else
-				jumpIdx = hm_f + 4;
-		} else    // moved from even row
-		{
-			if (hm_0 - hm_f == 7)
-				jumpIdx = hm_f + 4;
-			else
-				jumpIdx = hm_f + 5;
-		}
-		return true;
-	}
-	return false;    // NEW - this line should never be reached!
-}    // end of didJump()
-
-// finds which anchor was hit. Returns anchor index if valid anchor was hit. Returns -1 if not.
-int hitAnchor(bool Turn) // global turn not used as other value may be considered
-		{
-	int hSz = chSz / 2;
-	int idx = 0;
-	int ret = -1;
-
-	for (idx = 0; idx < Nanchors; ++idx) {
-		if (mseX < anchorArr1[idx].first - hSz)
-			continue;
-		if (mseX > anchorArr1[idx].first + hSz)
-			continue;
-		if (mseY < anchorArr1[idx].second - hSz)
-			continue;
-		if (mseY > anchorArr1[idx].second + hSz)
-			continue;
-		break;    // because anchor idx was hit
-	}
-	CheckerPos currentCheckerPos;
-	try {
-		currentCheckerPos = database.get<CheckerPos>(idx + 1);
-	} catch (std::exception &e) {
-		if (idx != 32) {
-			perror("hitAnchor: ");
-			perror(e.what());
-		}
-	}
-	if (idx == 32) {
-		ret = -1;    // all anchors were missed
-	} else if (Turn && currentCheckerPos.color == "White") {
-		ret = idx;
-	} else if (!Turn && currentCheckerPos.color == "Black") {
-		ret = idx;
-	}
-	return ret;
-}
-
-void drawCheckers(sf::RenderWindow& rApp) {
-// draw all checkers except the moving one
-	float hSz = chSz / 2;
-	int i = 0;    // for looping
-
-	if (reset)    // animated checker display
-	{
-		wh_dealPath.draw();
-		bk_dealPath.draw();
-		rApp.draw(msg);
-	}
-
-	if (gameOn)    // normal checker display
-	{
-		for (i = 0; i < Nanchors; ++i)
-			if (i != chObj.homeIdx)    // exclude the moving chObj
-					{
-				CheckerPos currentCheckerPos;
-				try {
-					currentCheckerPos = database.get<CheckerPos>(i + 1);
-				} catch (std::exception &e) {
-					perror("drawCheckers: ");
-					perror(e.what());
-				}
-				if (currentCheckerPos.color == "White") {
-					if (!currentCheckerPos.king) {
-						wh_chSprite.setPosition(
-								static_cast<float>(anchorArr1[i].first) - hSz,
-								static_cast<float>(anchorArr1[i].second) - hSz);
-						rApp.draw(wh_chSprite);
-					} else {
-						wh_kSprite.setPosition(
-								static_cast<float>(anchorArr1[i].first) - hSz,
-								static_cast<float>(anchorArr1[i].second) - hSz);
-						rApp.draw(wh_kSprite);
-					}
-				} else if (currentCheckerPos.color == "Black") {
-					if (!currentCheckerPos.king) {
-						bk_chSprite.setPosition(
-								static_cast<float>(anchorArr1[i].first) - hSz,
-								static_cast<float>(anchorArr1[i].second) - hSz);
-						rApp.draw(bk_chSprite);
-					} else {
-						bk_kSprite.setPosition(
-								static_cast<float>(anchorArr1[i].first) - hSz,
-								static_cast<float>(anchorArr1[i].second) - hSz);
-						rApp.draw(bk_kSprite);
-					}
-				}
-			}
-
-		chObj.draw();
-
-		// some text too
-		if (!gameOver) {
-			rApp.draw(msg_Turn);
-			if (turn)
-				rApp.draw(msg_Whites);
-			else
-				rApp.draw(msg_Blacks);
+			ganimators.gsprites.p_FXmsg = &ganimators.gsprites.msg_WHITEWINS;
 		}
 
-		// draw the captured checkers
-		for (i = 0; i < Nwh_capt; ++i) {
-			wh_chSprite.setPosition(wh_captX + capt_dx * (float) i, wh_captY);
-			rApp.draw(wh_chSprite);
-		}
-		for (i = 0; i < Nbk_capt; ++i) {
-			bk_chSprite.setPosition(bk_captX + capt_dx * (float) i, bk_captY);
-			rApp.draw(bk_chSprite);
-		}
-
-		// single animations
-//		if (aniPath.inUse)
-//			aniPath.draw();
-		if (kingMePath.inUse)
-			kingMePath.draw();
+		ganimators.textExpand(*ganimators.gsprites.p_FXmsg, 1.0f, 7.0f, 50,
+				true);
+		ganimators.textFade(*ganimators.gsprites.p_FXmsg, 255, 1, 50, true);
 	}
 
-	return;
-}    // end of drawCheckers()
-
-void gameCapture_SplitAniLogic(void) {
-	aniPath.move();
-
-// checker capture animation
-	if (animateCapt && !aniPath.inUse)    // capture ani just ended
-			{
-		animateCapt = false;
-		if (colorCapt == 'w' || colorCapt == 'W')
-			++Nwh_capt;
-		else
-			++Nbk_capt;
-
-		// split captured king ani trigger
-		if (colorCapt == 'W' || colorCapt == 'B') {
-			animateSplit = true;
-			if (colorCapt == 'W') {
-				p_aniPathLeg->INIT(wh_captX + (Nwh_capt - 1) * capt_dx,
-						wh_captY, wh_captX + Nwh_capt * capt_dx, wh_captY,
-						3.0f);
-				*aniPath.ppSprite = &wh_chSprite;
-			} else {
-				p_aniPathLeg->INIT(bk_captX + (Nbk_capt - 1) * capt_dx,
-						bk_captY, bk_captX + Nbk_capt * capt_dx, bk_captY,
-						3.0f);
-				*aniPath.ppSprite = &bk_chSprite;
-			}
-			aniPath.reset(true, 0);
-		}
+	if (!ganimators.gdata.gameOver) {
+		ganimators.gameKingMeAniLogic();
 	}
 
-// captured king split animation terminal assigns. (trigger in code above)
-	if (animateSplit && !aniPath.inUse) {
-		animateSplit = false;
-		if (colorCapt == 'W')
-			++Nwh_capt;
-		else
-			++Nbk_capt;
-	}
-	return;
-}
-
-void gameKingMeAniLogic(void) {
-// "King me" animation trigger
-	if (justKinged && !aniPath.inUse) {
-		justKinged = false;
-		animateKing = true;
-		kingMePath.reset(true, 0);
-		if (*kingMePath.ppSprite == &wh_chSprite)
-			--Nwh_capt;
-		else
-			--Nbk_capt;
-	}
-
-	kingMePath.move();
-
-// "King me" animation termination
-	if (animateKing && !kingMePath.inUse) {
-		animateKing = false;
-		if (*kingMePath.ppSprite == &wh_chSprite)
-			chObj.pSprite = &wh_kSprite;
-		else
-			chObj.pSprite = &bk_kSprite;
-
-	}
-	return;
-}
-
-bool menuHitDown(void)    // returns false if file I/O error
-		{
-	bool init_game = false;
-
-	if (gameOn)
-		if (saveGameButt.hit_dn()) {
-			saveDatabase("save.db", 0);
-		}
-	if (newButt.hit_dn()) {
-		init_game = true;
-		INITcheckerPositions_NEW();
-	}
-	if (savedButt.hit_dn()) {
-		init_game = true;
-		INITcheckerPositions_SAVED();
-	}
-
-	if (init_game)    // resets game
-	{
-		init_game = false;
-
-		INITpathLegs();
-		int i = 0;
-		bool whiteFound = false;
-		for (i = 0; !whiteFound && i < 32; ++i) {
-			CheckerPos currentCheckerPos;
-			try {
-				currentCheckerPos = database.get<CheckerPos>(i + 1);
-				if (currentCheckerPos.color == "White") {
-					whiteFound = true;    // find 1st white checker
-				}
-			} catch (std::exception &e) {
-				perror("menuHitDown: ");
-				perror(e.what());
-			}
-		}
-		chObj.homeIdx = i;
-		chObj.docked = false;
-		chObj.snap();
-		chObj.pSprite = &wh_chSprite;
-		//        turn = true;// whites turn
-		reset = true;
-		gameOn = gameOver = false;
-		animateKing = justKinged = false;
-		wh_dealPath.reset(true, 0);
-		bk_dealPath.reset(true, 0);
-		//        Nwh_capt = Nbk_capt = 0;
-		//        textFX = true;
-		//        textFXdelay = 30;
-		//        textExpand( msg_WELCOME, 1.0f, 7.0f, 20, true );
-		//        textFade( msg_WELCOME, 255, 1, 20, true );
-	}
-
-	return true;
-}        // end of menuHitDown()
-
-void menuHitUp(void) {
-	newButt.hit_up();
-	savedButt.hit_up();
-	if (gameOn)
-		saveGameButt.hit_up();
-
-	return;
-}
-
-void gameHitDown(void) {
-	int idx = -1;
-	if (jumpMade && canJump)        // handle multi-jump
-			{
-		if (chObj.grab())
-			return;        // moveList already filled after 1st jump
-		idx = hitAnchor(!turn);        // see if other color anchor was hit
-		if (idx != -1)        // it was!
-				{
-			turn = !turn;        // change turn
-			GameState currentState;
-			try {
-				currentState = database.get<GameState>(1);
-				if (turn) {
-					currentState.turn = "White";
-				} else {
-					currentState.turn = "Black";
-				}
-				database.update(currentState);
-			} catch (std::exception &e) {
-				perror("gameHitDown: ");
-				perror(e.what());
-			}
-			jumpMade = canJump = false;
-		}
-	} else
-		// normal treatment
-		idx = hitAnchor(turn);
-
-// normal case
-	if (idx != -1)        // a valid anchor was hit
-			{
-		jumpMade = false;
-		fillMoveList(idx);
-		if (Nmoves > 0)        // move is possible from anchor idx
-				{
-			// relocate chObj to anchor idx
-			chObj.homeIdx = idx;
-			chObj.docked = false;
-			chObj.snap();
-			chObj.grab();
-			CheckerPos currentCheckerPos;
-			try {
-				currentCheckerPos = database.get<CheckerPos>(idx + 1);
-				if (currentCheckerPos.color == "White") {
-					if (!currentCheckerPos.king) {
-						chObj.pSprite = &wh_chSprite;
-					} else {
-						chObj.pSprite = &wh_kSprite;
-					}
-				} else if (currentCheckerPos.color == "Black") {
-					if (!currentCheckerPos.king) {
-						chObj.pSprite = &bk_chSprite;
-					} else {
-						chObj.pSprite = &bk_kSprite;
-					}
-				}
-			} catch (std::exception &e) {
-				perror("gameHitDown: ");
-				perror(e.what());
-			}
-		}
-	}
-
-	return;
-}        // end of gameHitDown()
-
-void gameHitUp(void) {
-	int hm_0 = chObj.homeIdx;
-	chObj.release(moveIdxList, Nmoves);
-	chObj.snap();
-
-	int hm_f = chObj.homeIdx;
-	if (hm_f != hm_0)        // a move was made
-			{
-		// update list for moved checker
-		CheckerPos currentCheckerPosf;
-		CheckerPos currentCheckerPos0;
-		try {
-			currentCheckerPosf = database.get<CheckerPos>(hm_f + 1);
-			currentCheckerPos0 = database.get<CheckerPos>(hm_0 + 1);
-			currentCheckerPosf.color = currentCheckerPos0.color;
-			currentCheckerPosf.king = currentCheckerPos0.king;
-			currentCheckerPos0.color = "";
-			currentCheckerPos0.king = false;
-			database.update(currentCheckerPosf);
-			database.update(currentCheckerPos0);
-		} catch (std::exception &e) {
-			perror("gameHitUp: ");
-			perror(e.what());
-		}
-
-		float hSz = chSz / 2;
-
-		// King me!
-		justKinged = false;
-		float xf = (float) (anchorArr1[hm_f].first) - hSz;
-		float yf = (float) (anchorArr1[hm_f].second) - hSz;
-		if (turn && hm_f > 27 && currentCheckerPosf.color == "White"
-				&& !currentCheckerPosf.king) {
-			currentCheckerPosf.king = true;
-			database.update(currentCheckerPosf);
-//            chObj.pSprite = &wh_kSprite;
-			*kingMePath.ppSprite = &wh_chSprite;
-			p_kingMePathLeg->INIT(wh_captX + (Nwh_capt - 1) * capt_dx, wh_captY,
-					xf, yf, 20.0f);
-			justKinged = true;
-		} else if (!turn && hm_f < 4 && currentCheckerPosf.color == "Black"
-				&& !currentCheckerPosf.king) {
-			currentCheckerPosf.king = true;
-			database.update(currentCheckerPosf);
-//            chObj.pSprite = &bk_kSprite;
-			*kingMePath.ppSprite = &bk_chSprite;
-			p_kingMePathLeg->INIT(bk_captX + (Nbk_capt - 1) * capt_dx, bk_captY,
-					xf, yf, 20.0f);
-			justKinged = true;
-		}
-
-		// was a jump made?
-		int jumpIdx = 0;
-		jumpMade = didJump(hm_0, hm_f, jumpIdx);
-		if (jumpMade) {
-			// for the capture animation
-			CheckerPos jumpedCheckerPos;
-			try {
-				jumpedCheckerPos = database.get<CheckerPos>(jumpIdx + 1);
-				if (jumpedCheckerPos.color == "White") {
-					colorCapt = 'w';
-				} else {
-					colorCapt = 'b';
-				}
-				jumpedCheckerPos.color = "";
-				jumpedCheckerPos.king = false;
-				database.update(jumpedCheckerPos);
-			} catch (std::exception &e) {
-				perror("gameHitUp: ");
-				perror(e.what());
-			}
-			animateCapt = true;
-			float xi = (float) (anchorArr1[jumpIdx].first) - hSz;
-			float yi = (float) (anchorArr1[jumpIdx].second) - hSz;
-
-			if (jumpedCheckerPos.color == "White")
-				p_aniPathLeg->INIT(xi, yi, wh_captX + Nwh_capt * capt_dx,
-						wh_captY, 40.0f);
-			else
-				p_aniPathLeg->INIT(xi, yi, bk_captX + Nbk_capt * capt_dx,
-						bk_captY, 40.0f);
-
-			if (jumpedCheckerPos.color == "White") {
-				if (!jumpedCheckerPos.king) {
-					*aniPath.ppSprite = &wh_chSprite;
-				} else {
-					*aniPath.ppSprite = &wh_kSprite;
-				}
-			} else if (jumpedCheckerPos.color == "Black") {
-				if (!jumpedCheckerPos.king) {
-					*aniPath.ppSprite = &bk_chSprite;
-				} else {
-					*aniPath.ppSprite = &bk_kSprite;
-				}
-			}
-			aniPath.reset(true, 0);
-
-			// see if another jump can be made
-			canJump = false;
-			if (!justKinged)
-				canJump = fillMoveList(hm_f);
-		} else
-			canJump = false;        // no jump = no next jump
-
-		if (!canJump) {
-			turn = !turn;        // change turns
-			GameState currentState;
-			try {
-				currentState = database.get<GameState>(1);
-				if (turn) {
-					currentState.turn = "White";
-				} else {
-					currentState.turn = "Black";
-				}
-				database.update(currentState);
-			} catch (std::exception &e) {
-				perror("gameHitDown: ");
-				perror(e.what());
-			}
-		}
-	}
-
-	return;
-}        // end of gameHitUp()
-
-void gameLogic(void) {
-// the checker deal animation
-	if (reset) {
-		wh_dealPath.move();
-		bk_dealPath.move();
-		if (!wh_dealPath.inUse && !bk_dealPath.inUse) // timer went off. Animation is done
-				{
-			reset = false;
-			gameOn = true;
-		}
-	}
-
-	if ((animateCapt || animateSplit) && gameOn)
-		gameCapture_SplitAniLogic();
-
-// test for end of game
-	if ((Nwh_capt == 12 || Nbk_capt == 12) && !gameOver) {
-		gameOver = true;
-		textFX = true;
-		textFXdelay = 30;
-
-		if (Nwh_capt == 12)
-			p_FXmsg = &msg_BLACKWINS;
-		else
-			p_FXmsg = &msg_WHITEWINS;
-
-		textExpand(*p_FXmsg, 1.0f, 7.0f, 50, true);
-		textFade(*p_FXmsg, 255, 1, 50, true);
-	}
-
-	if (!gameOver)
-		gameKingMeAniLogic();
-
-// textFX
-	if (textFX) {
-		if (textFXdelay > 1)
-			--textFXdelay;
-		else {
-			textFX = textExpand(*p_FXmsg, 1.0f, 7.0f, 50);
-			textFade(*p_FXmsg, 255, 1, 50);
+	// textFX
+	if (ganimators.textFX) {
+		if (ganimators.textFXdelay > 1) {
+			--ganimators.textFXdelay;
+		} else {
+			ganimators.textFX = ganimators.textExpand(
+					*ganimators.gsprites.p_FXmsg, 1.0f, 7.0f, 50, false);
+			ganimators.textFade(*ganimators.gsprites.p_FXmsg, 255, 1, 50,
+					false);
 		}
 	}
 
 	return;
 }
 
-void gameDraw(sf::RenderWindow& rApp) {
-	newButt.draw();        // game reset
-	savedButt.draw();
-
-	if (gameOn)
-		saveGameButt.draw();
-
-	rApp.draw(boardSprite);
-	drawCheckers(rApp);
-	if (textFX)
-		rApp.draw(*p_FXmsg);
-
-	return;
-}
-
-// text effects functions
-bool textExpand(sf::Text& r_text, float scale_i, float scale_f, int Nframes,
-		bool reset) {
-	static int frCount = 0;
-	static float oldRt = r_text.getLocalBounds().width;
-	static float oldBot = r_text.getLocalBounds().height;
-	if (reset) {
-		frCount = 0;
-		oldRt = r_text.getLocalBounds().width;
-		oldBot = r_text.getLocalBounds().height;
-	}
-
-	if (frCount < Nframes)
-		++frCount;
-	else
-		return false;        // not expanding anymore
-
-	float scl = scale_i
-			+ (scale_f - scale_i) * (float) frCount / (float) Nframes;
-	r_text.setScale(scl, scl);
-	float newRt = r_text.getLocalBounds().width;
-	float newBot = r_text.getLocalBounds().height;
-	r_text.move((oldRt - newRt) / 2.0f, (oldBot - newBot) / 2.0f);
-	oldRt -= (oldRt - newRt) / 2.0f;
-	oldBot -= (oldBot - newBot) / 2.0f;
-
-	return true;
-}
-
-bool textFade(sf::Text& r_text, int alpha_i, int alpha_f, int Nframes,
-		bool reset) {
-	static int frCount = 0;
-	static unsigned int oldRed = r_text.getFillColor().r;
-	static unsigned int oldGrn = r_text.getFillColor().g;
-	static unsigned int oldBlu = r_text.getFillColor().b;
-	if (reset) {
-		frCount = 0;
-		oldRed = r_text.getFillColor().r;
-		oldGrn = r_text.getFillColor().g;
-		oldBlu = r_text.getFillColor().b;
-	}
-
-	if (frCount < Nframes)
-		++frCount;
-	else
-		return false;        // not fading anymore
-
-	int alf = (unsigned int) ((float) alpha_i
-			+ (float) (alpha_f - alpha_i) * (float) frCount / (float) Nframes);
-	r_text.setFillColor(sf::Color(oldRed, oldGrn, oldBlu, alf));
-
-	return true;
-}

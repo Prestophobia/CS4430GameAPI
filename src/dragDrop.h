@@ -6,12 +6,7 @@
 
 class dragDrop {
 public:
-	// static vars
 	static sf::RenderWindow* pWndw;
-//	static int* p_mseX;
-//	static int* p_mseY;
-	const static int& r_mseX;
-	const static int& r_mseY;
 	static float snap_speed;
 
 	// member vars
@@ -28,15 +23,15 @@ public:
 	int homeIdx; // index to home location among anchor array elements
 
 	// functions
-	virtual bool hit(void) = 0; // depends on shape ( rect, circle, ? )
+	virtual bool hit(int mseX, int mseY) = 0; // depends on shape ( rect, circle, ? )
 	virtual bool hitAnchor(int idx) = 0;
 	virtual void snap(void) = 0; // carries out snap-to motion in frame logic. Shape dependent.
 
 	void draw(void);
-	bool grab(void); // call on LBUTT down - calls hit()
+	bool grab(int mseX, int mseY); // call on LBUTT down - calls hit()
 	void release(void); // call on LBUTT up - calls hitAnchor()
 	void release(int* p_IdxList, int listSz); // for use when given a sub-list of anchors from a larger array of anchors
-	void drag(void); // call in frame logic
+	void drag(int mseX, int mseY); // call in frame logic
 
 	// for INIT of anchors
 	void set_anchors(std::pair<int, int>* p_AnchorArr, int arrSize,

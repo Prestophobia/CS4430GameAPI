@@ -3,13 +3,9 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "Font.h"
-
 class button {
 public:
 	static sf::RenderWindow* pWndw;
-	static const int& r_mseX;
-	static const int& r_mseY;
 	sf::Text label;
 	char labelPos = 0; // l,r,c,t,b
 
@@ -22,13 +18,13 @@ public:
 	//** functions
 
 	// pure virtual
-	virtual bool hit(void) = 0;
+	virtual bool hit(int mseX, int mseY) = 0;
 	virtual void draw(void) = 0;
 	virtual void set_label(const sf::Text Label) = 0; // label position assigned
 
 	// logic
-	bool mseOver(void);
-	bool hit_dn(void);
+	bool mseOver(int mseX, int mseY);
+	bool hit_dn(int mseX, int mseY);
 	void hit_up(void);
 
 	// INIT

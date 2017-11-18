@@ -34,13 +34,13 @@ void dragDrop::draw(void) {
 	return;
 }
 
-bool dragDrop::grab(void) // call on LBUTT down
+bool dragDrop::grab(int mseX, int mseY) // call on LBUTT down
 		{
-	if (hit()) {
+	if (hit(mseX, mseY)) {
 		held = true;
 		docked = false; // snap() will act - NEW
-		grabX = r_mseX - posX;
-		grabY = r_mseY - posY;
+		grabX = mseX - posX;
+		grabY = mseY - posY;
 	}
 	return held;
 }
@@ -77,10 +77,10 @@ void dragDrop::release(int* p_IdxList, int listSz) {
 	return;
 }
 
-void dragDrop::drag(void) {
+void dragDrop::drag(int mseX, int mseY) {
 	if (held) {
-		posX = r_mseX - grabX;
-		posY = r_mseY - grabY;
+		posX = mseX - grabX;
+		posY = mseY - grabY;
 	}
 }
 
