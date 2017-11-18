@@ -1,7 +1,11 @@
 #include "buttonRect.h"
 
 buttonRect::buttonRect(char Type, int PosX, int PosY, int SzX, int SzY) :
-		button(Type, PosX, PosY), szX(SzX), szY(SzY) {
+		szX(SzX), szY(SzY) {
+	posX = PosX;
+	posY = PosY;
+	sel = mo = false;
+	type = 's'; // default is selection type
 }
 
 buttonRect::~buttonRect() {
@@ -58,3 +62,63 @@ void buttonRect::set_label(const sf::Text Label) {
 
 	return;
 } // end of set_label()
+
+bool buttonRect::mseOver(int mseX, int mseY) {
+	switch (type) {
+	case 's':
+		if (!sel && hit(mseX, mseY))
+			mo = true;
+		else
+			mo = false;
+		break;
+	case 't':
+		if (hit(mseX, mseY))
+			mo = true;
+		else
+			mo = false;
+		break;
+	case 'm':
+		if (hit(mseX, mseY))
+			mo = true;
+		else
+			mo = sel = false;
+		break;
+	}
+	return mo;
+}
+
+bool buttonRect::hit_dn(int mseX, int mseY) {
+	switch (type) {
+	case 's':
+		if (!sel && hit(mseX, mseY)) {
+			sel = true;
+			mo = false;
+		}
+		break;
+	case 't':
+		if (hit(mseX, mseY))
+			sel = !sel;
+		break;
+	case 'm':
+		if (hit(mseX, mseY))
+			sel = true;
+		break;
+	}
+	return hit(mseX, mseY);
+} // end of hit_dn()
+
+void buttonRect::hit_up(void) {
+	if (type == 'm')
+		sel = false;
+	return;
+}
+
+void buttonRect::INITlabel(const sf::Text Label, sf::Color txtColor,
+		char LabelPos) {
+	labelPos = LabelPos;
+
+	label.setFillColor(txtColor);
+	set_label(Label);
+
+	return;
+} // end of INITlabel()
