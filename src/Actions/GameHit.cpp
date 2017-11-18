@@ -395,18 +395,23 @@ void GameHit::gameHitUp() {
 	if (hm_f != hm_0) {
 
 		// Move checker in database
-		CheckerPos currentCheckerPosf = gdatabase.getCheckerPos(hm_f + 1);
-		CheckerPos currentCheckerPos0 = gdatabase.getCheckerPos(hm_0 + 1);
+		CheckerPos checkerPos = gdatabase.getCheckerPos(hm_f + 1);
+		CheckerPos checkerPosFrom = gdatabase.getCheckerPos(hm_0 + 1);
 
 		// TODO update checker record in database
-		currentCheckerPosf.color = currentCheckerPos0.color;
-		currentCheckerPosf.king = currentCheckerPos0.king;
+		checkerPos.color = checkerPosFrom.color;
+		checkerPos.king = checkerPosFrom.king;
 
-		currentCheckerPos0.color = "";
-		currentCheckerPos0.king = false;
+		checkerPosFrom.color = "";
+		checkerPosFrom.king = false;
 
-		gdatabase.updateCheckerPos(currentCheckerPosf);
-		gdatabase.updateCheckerPos(currentCheckerPos0);
+		gdatabase.updateCheckerPos(checkerPosFrom);
+		gdatabase.updateCheckerPos(checkerPos);
+
+		CheckerRecord newRecord(-1, checkerPosFrom, checkerPos,
+				gdata.last_move_clock.getElapsedTime().asSeconds());
+		gdatabase.insertCheckerRecord(newRecord);
+		gdata.last_move_clock.restart();
 
 		float hSz = gdata.chSz / 2;
 		GameState currentState = gdatabase.getGameState();
@@ -416,12 +421,11 @@ void GameHit::gameHitUp() {
 		float xf = (float) (gdata.anchorArr1[hm_f].first) - hSz;
 		float yf = (float) (gdata.anchorArr1[hm_f].second) - hSz;
 		if (currentState.turn == "White" && hm_f > 27
-				&& currentCheckerPosf.color == "White"
-				&& !currentCheckerPosf.king) {
+				&& checkerPos.color == "White" && !checkerPos.king) {
 
 			// Update database
-			currentCheckerPosf.king = true;
-			gdatabase.updateCheckerPos(currentCheckerPosf);
+			checkerPos.king = true;
+			gdatabase.updateCheckerPos(checkerPos);
 
 			// Update animation
 			*ganimators.kingMePath.ppSprite = &gsprites.wh_chSprite;
@@ -432,12 +436,11 @@ void GameHit::gameHitUp() {
 			ganimators.justKinged = true;
 
 		} else if (currentState.turn == "Black" && hm_f < 4
-				&& currentCheckerPosf.color == "Black"
-				&& !currentCheckerPosf.king) {
+				&& checkerPos.color == "Black" && !checkerPos.king) {
 
 			// Update database
-			currentCheckerPosf.king = true;
-			gdatabase.updateCheckerPos(currentCheckerPosf);
+			checkerPos.king = true;
+			gdatabase.updateCheckerPos(checkerPos);
 
 			// Update animation
 			*ganimators.kingMePath.ppSprite = &gsprites.bk_chSprite;

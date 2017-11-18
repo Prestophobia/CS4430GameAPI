@@ -19,20 +19,20 @@ void Animations::initPaths() {
 	// for the checker deal animation
 	// allocate and INIT Legs. The array of Leg*'s were allocated in the Path ctor
 	for (i = 0; i < wh_dealPath.nLegs; ++i) {
-		wh_dealPath.ppLeg[i] = new linLeg;
+		wh_dealPath.ppLeg[i] = new LinLeg;
 		wh_dealPath.ppSprite[i] = &gsprites.wh_chSprite;
 	}
 
 	for (i = 0; i < bk_dealPath.nLegs; ++i) {
-		bk_dealPath.ppLeg[i] = new linLeg;
+		bk_dealPath.ppLeg[i] = new LinLeg;
 		bk_dealPath.ppSprite[i] = &gsprites.bk_chSprite;
 	}
 
 	// for the one-legged anis in the game ( capture, king split, "king me" )
-	p_aniPathLeg = new linLeg; // used for both capture and kink split animations
+	p_aniPathLeg = new LinLeg; // used for both capture and kink split animations
 	*aniPath.ppLeg = p_aniPathLeg;
 
-	p_kingMePathLeg = new linLeg;
+	p_kingMePathLeg = new LinLeg;
 	*kingMePath.ppLeg = p_kingMePathLeg;
 
 	return;

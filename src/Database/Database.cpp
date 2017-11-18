@@ -21,10 +21,11 @@ auto database = make_storage(":memory:",
 				make_column("Turn", &GameState::turn)),
 		make_table("Checker_Record",
 				make_column("ID", &CheckerRecord::id, primary_key()),
-				make_column("Position", &CheckerRecord::pos),
+				make_column("Position_From", &CheckerRecord::posFrom),
+				make_column("Position_To", &CheckerRecord::posTo),
 				make_column("Color", &CheckerRecord::color),
 				make_column("King", &CheckerRecord::king),
-				make_column("Time", &CheckerRecord::time)));
+				make_column("Wait_Time", &CheckerRecord::time)));
 
 Database::Database() {
 	database.sync_schema();
@@ -197,5 +198,33 @@ bool Database::initCheckerPositionsNew() {
 	}
 
 	return true;
+}
+
+CheckerRecord Database::getCheckerRecord(int id) {
+	try {
+		return database.get<CheckerRecord>(id);
+	} catch (std::exception &e) {
+		perror("GetCheckerRecord");
+		perror(e.what());
+		return CheckerRecord(-1, -1, -1, false, "OUT_OF_RANGE", 0);
+	}
+}
+
+void Database::insertCheckerRecord(CheckerRecord &checkerRecord) {
+	try {
+		database.insert(checkerRecord);
+	} catch (std::exception &e) {
+		perror("AddCheckerRecord");
+		perror(e.what());
+	}
+}
+
+void Database::updateCheckerRecord(CheckerRecord &checkerRecord) {
+	try {
+		database.update(checkerRecord);
+	} catch (std::exception &e) {
+		perror("UpdateCheckerRecord");
+		perror(e.what());
+	}
 }
 

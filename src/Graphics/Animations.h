@@ -11,7 +11,7 @@
 #define GRAPHICS_ANIMATIONS_H_
 
 #include "Graphics/Path.h"
-#include "Graphics/linLeg.h"
+#include "Graphics/LinLeg.h"
 
 #include "Graphics/Sprites.h"
 
@@ -20,7 +20,6 @@
 #include "Data/GameData.h"
 
 class Animations {
-
 public:
 	Sprites &gsprites;
 	Database &gdatabase;
@@ -38,10 +37,10 @@ public:
 	dragDropRect chObj { 200, 200, 0 };
 
 	Path aniPath { 1, 0, 0, 100.0f, 100.0f }; // start using this!!
-	linLeg* p_aniPathLeg = NULL; // for calling INITlin() on aniPath leg
+	LinLeg* p_aniPathLeg = NULL; // for calling INITlin() on aniPath leg
 
 	Path kingMePath { 1, 0, 0, 100.0f, 100.0f }; // start using this!!
-	linLeg* p_kingMePathLeg = NULL; // for calling INITlin() on aniPath leg
+	LinLeg* p_kingMePathLeg = NULL; // for calling INITlin() on aniPath leg
 
 	// Checker Setup Animation Paths
 	Path wh_dealPath { 12, 50, 3, 400.0f, -40.0f };

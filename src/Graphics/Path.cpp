@@ -7,13 +7,13 @@ Path::Path(int N_legs, int Delay, int Launch_dt, float Xi, float Yi) {
 
 	if (nLegs > 1) {
 		ppSprite = new sf::Sprite*[nLegs];
-		ppLeg = new Leg*[nLegs];
+		ppLeg = new LinLeg*[nLegs];
 		px = new float[nLegs];
 		py = new float[nLegs];
 		ptLeg = new float[nLegs];
 	} else {
 		ppSprite = new sf::Sprite*;
-		ppLeg = new Leg*;
+		ppLeg = new LinLeg*;
 		px = new float;
 		py = new float;
 		ptLeg = new float;

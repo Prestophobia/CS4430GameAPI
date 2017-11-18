@@ -17,19 +17,23 @@
 class CheckerRecord {
 public:
 	int id = -1;
-	int pos = 0;
+	int posFrom = 0;
+	int posTo = 0;
 	bool king = false;
 	std::string color;
 	double time = 0;
 
 	CheckerRecord() {
 	}
-	CheckerRecord(int id, CheckerPos checker, double time) :
-			id(id), pos(checker.pos), king(checker.king), color(checker.color), time(
-					time) {
+	CheckerRecord(int id, CheckerPos checkerFrom, CheckerPos checker,
+			double time) :
+			id(id), posFrom(checkerFrom.pos), posTo(checker.pos), king(
+					checker.king), color(checker.color), time(time) {
 	}
-	CheckerRecord(int id, int pos, bool king, std::string color, double time) :
-			id(id), pos(pos), king(king), color(color), time(time) {
+	CheckerRecord(int id, int posFrom, int posTo, bool king, std::string color,
+			double time) :
+			id(id), posFrom(posFrom), posTo(posTo), king(king), color(color), time(
+					time) {
 	}
 };
 

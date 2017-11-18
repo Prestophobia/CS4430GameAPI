@@ -10,6 +10,8 @@
 #ifndef GAMEDATA_H_
 #define GAMEDATA_H_
 
+#include <SFML/System.hpp>
+
 #include "Graphics/Sprites.h"
 
 #include "Graphics/dragDropRect.h"
@@ -19,6 +21,8 @@
 class GameData {
 public:
 	Sprites &gsprites;
+
+	sf::Clock last_move_clock;
 
 	// a checker board
 	int Nanchors = NANCHORS; // use for checker board

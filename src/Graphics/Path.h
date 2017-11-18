@@ -1,8 +1,8 @@
 #ifndef PATH_H
 #define PATH_H
 
+#include <Graphics/LinLeg.h>
 #include <SFML/Graphics.hpp>
-#include "Leg.h"
 
 class Path {
 public:
@@ -11,7 +11,7 @@ public:
 	sf::Sprite** ppSprite; // for array of sprite pointers (a different object can be drawn on each Leg)
 
 	// for use with Legs
-	Leg** ppLeg; // for array of Leg pointers
+	LinLeg** ppLeg; // for array of Leg pointers
 	float xi; // the common start positions
 	float yi;
 	float* px;

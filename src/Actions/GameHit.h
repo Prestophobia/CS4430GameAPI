@@ -18,6 +18,11 @@
 #include "Graphics/Animations.h"
 
 class GameHit {
+private:
+	int hitAnchor(std::string turn);
+	bool fillMoveList(int hm);
+	bool didJump(int hm_0, int hm_f, int& jumpIdx);
+
 public:
 	Sprites &gsprites;
 	Database &gdatabase;
@@ -25,10 +30,7 @@ public:
 	Animations &ganimators;
 
 	GameHit(Animations &ganimators);
-	int hitAnchor(std::string turn);
-	bool fillMoveList(int hm);
 	void gameHitDown();
-	bool didJump(int hm_0, int hm_f, int& jumpIdx);
 	void gameHitUp();
 };
 

@@ -1,9 +1,9 @@
-#include "linLeg.h"
+#include <Graphics/LinLeg.h>
 
-linLeg::linLeg(void) {
+LinLeg::LinLeg(void) {
 }
 
-linLeg::linLeg(float* pxi, float* pyi, float Vxi, float Vyi, float per) {
+LinLeg::LinLeg(float* pxi, float* pyi, float Vxi, float Vyi, float per) {
 	posix = *pxi; // Wham-Bam! No calc's req'd!!
 	posiy = *pyi;
 
@@ -18,7 +18,7 @@ linLeg::linLeg(float* pxi, float* pyi, float Vxi, float Vyi, float per) {
 } // end of INITlin()
 
 /*
- linLeg* linLeg::INITlin(float* pxi, float* pyi, float Vxi, float Vyi, float per )
+ LinLeg* LinLeg::INITlin(float* pxi, float* pyi, float Vxi, float Vyi, float per )
  {
  posix = *pxi;// Wham-Bam! No calc's req'd!!
  posiy = *pyi;
@@ -34,7 +34,7 @@ linLeg::linLeg(float* pxi, float* pyi, float Vxi, float Vyi, float per) {
  return( this );
  }// end of INITlin()    */
 
-linLeg::linLeg(float xi, float yi, float xf, float yf, float speed) {
+LinLeg::LinLeg(float xi, float yi, float xf, float yf, float speed) {
 	posix = xi;
 	posiy = yi;
 	float dist = sqrt((xf - xi) * (xf - xi) + (yf - yi) * (yf - yi));
@@ -43,7 +43,7 @@ linLeg::linLeg(float xi, float yi, float xf, float yf, float speed) {
 	veliy = speed * (yf - yi) / dist;
 }
 
-void linLeg::INIT(float xi, float yi, float xf, float yf, float speed) {
+void LinLeg::INIT(float xi, float yi, float xf, float yf, float speed) {
 	posix = xi;
 	posiy = yi;
 	float dist = sqrt((xf - xi) * (xf - xi) + (yf - yi) * (yf - yi));
@@ -53,13 +53,11 @@ void linLeg::INIT(float xi, float yi, float xf, float yf, float speed) {
 	return;
 }
 
-linLeg::~linLeg(void) {
-}
 
-float linLeg::x(float t) {
+float LinLeg::x(float t) {
 	return (posix + velix * t);
 } // end of virtual x(t)
 
-float linLeg::y(float t) {
+float LinLeg::y(float t) {
 	return (posiy + veliy * t);
 } // end of virtual y(t)
