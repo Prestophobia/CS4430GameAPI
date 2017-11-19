@@ -61,7 +61,8 @@ int main(int argc, char *argv[]) {
 
 		window.setVerticalSyncEnabled(true); // default = false
 
-		gdata.last_move_clock.restart();
+		gdata.lastMoveClock.restart();
+		gdata.gameClock.restart();
 
 		if (window.isOpen()) {
 			do {

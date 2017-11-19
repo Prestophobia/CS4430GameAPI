@@ -18,14 +18,15 @@ auto database = make_storage(":memory:",
 				make_column("King", &CheckerPos::king)),
 		make_table("Game_State",
 				make_column("ID", &GameState::id, primary_key()),
-				make_column("Turn", &GameState::turn)),
+				make_column("Turn", &GameState::turn),
+				make_column("Clock", &GameState::clock)),
 		make_table("Checker_Record",
 				make_column("ID", &CheckerRecord::id, primary_key()),
 				make_column("Position_From", &CheckerRecord::posFrom),
 				make_column("Position_To", &CheckerRecord::posTo),
 				make_column("Color", &CheckerRecord::color),
 				make_column("King", &CheckerRecord::king),
-				make_column("Wait_Time", &CheckerRecord::time)));
+				make_column("Game_Time", &CheckerRecord::time)));
 
 Database::Database() {
 	database.sync_schema();
@@ -191,7 +192,7 @@ bool Database::initCheckerPositionsNew() {
 			database.insert(CheckerPos(i, false, "Black"));
 		}
 
-		database.insert(GameState(1, "White"));
+		database.insert(GameState(1, "White", 0));
 	} catch (std::exception &e) {
 		perror("initCheckerPositionsNew");
 		perror(e.what());

@@ -16,11 +16,12 @@ class GameState {
 public:
 	int id = -1;
 	std::string turn;
+	double clock = 0;
 
 	GameState() {
 	}
-	GameState(int id, std::string turn) :
-			id(id), turn(turn) {
+	GameState(int id, std::string turn, double clock) :
+			id(id), turn(turn), clock(clock) {
 	}
 	;
 };

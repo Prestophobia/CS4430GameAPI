@@ -394,11 +394,12 @@ void GameHit::gameHitUp() {
 	int hm_f = ganimators.chObj.homeIdx;
 	if (hm_f != hm_0) {
 
+		GameState currentState = gdatabase.getGameState();
+
 		// Move checker in database
 		CheckerPos checkerPos = gdatabase.getCheckerPos(hm_f + 1);
 		CheckerPos checkerPosFrom = gdatabase.getCheckerPos(hm_0 + 1);
 
-		// TODO update checker record in database
 		checkerPos.color = checkerPosFrom.color;
 		checkerPos.king = checkerPosFrom.king;
 
@@ -408,13 +409,14 @@ void GameHit::gameHitUp() {
 		gdatabase.updateCheckerPos(checkerPosFrom);
 		gdatabase.updateCheckerPos(checkerPos);
 
+		// Add record of move
 		CheckerRecord newRecord(-1, checkerPosFrom, checkerPos,
-				gdata.last_move_clock.getElapsedTime().asSeconds());
+				currentState.clock
+						+ gdata.gameClock.getElapsedTime().asSeconds());
 		gdatabase.insertCheckerRecord(newRecord);
-		gdata.last_move_clock.restart();
+		gdata.lastMoveClock.restart();
 
 		float hSz = gdata.chSz / 2;
-		GameState currentState = gdatabase.getGameState();
 
 		// Check for king; King me if necessary
 		ganimators.justKinged = false;

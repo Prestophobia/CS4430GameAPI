@@ -23,15 +23,21 @@ bool MenuHit::menuHitDown(void)    // returns false if file I/O error
 	// Get menu option chosen
 	if (gdata.gameOn)
 		if (gmenu.saveGameButt.hit_dn(gdata.mseX, gdata.mseY)) {
+			GameState currentState = gdatabase.getGameState();
+			currentState.clock += gdata.gameClock.getElapsedTime().asSeconds();
+			gdatabase.updateGameState(currentState);
 			gdatabase.saveGame("save.db");
+			gdata.gameClock.restart();
 		}
 	if (gmenu.newButt.hit_dn(gdata.mseX, gdata.mseY)) {
 		init_game = true;
 		gdatabase.initCheckerPositionsNew();
+		gdata.gameClock.restart();
 	}
 	if (gmenu.savedButt.hit_dn(gdata.mseX, gdata.mseY)) {
 		init_game = true;
 		gdatabase.loadGame("save.db");
+		gdata.gameClock.restart();
 	}
 
 	// Reset game

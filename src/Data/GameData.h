@@ -22,7 +22,8 @@ class GameData {
 public:
 	Sprites &gsprites;
 
-	sf::Clock last_move_clock;
+	sf::Clock lastMoveClock;
+	sf::Clock gameClock;
 
 	// a checker board
 	int Nanchors = NANCHORS; // use for checker board
