@@ -8,6 +8,8 @@
  */
 
 #include "lib/Database/Database.h"
+#include <iostream>
+using namespace sqlite_orm;
 
 auto database = sqlite_orm::make_storage(":memory:",
 		sqlite_orm::make_table("Checker_Positions",
@@ -20,6 +22,12 @@ auto database = sqlite_orm::make_storage(":memory:",
 						sqlite_orm::primary_key()),
 				sqlite_orm::make_column("Turn", &GameState::turn),
 				sqlite_orm::make_column("Clock", &GameState::clock)),
+		sqlite_orm::make_table("Frame_State",
+				sqlite_orm::make_column("Time", &FrameState::time),
+				sqlite_orm::make_column("Frame_Number",
+						&FrameState::frame_number),
+				sqlite_orm::make_column("Input", &FrameState::input),
+				sqlite_orm::make_column("State", &FrameState::state)),
 		sqlite_orm::make_table("Checker_Record",
 				sqlite_orm::make_column("ID", &CheckerRecord::id,
 						sqlite_orm::primary_key()),
@@ -233,3 +241,68 @@ void Database::updateCheckerRecord(CheckerRecord &checkerRecord) {
 	}
 }
 
+std::vector<FrameState> Database::getFrameStates(int frameNumber) {
+	try {
+		return database.get_all<FrameState>(
+				sqlite_orm::where(
+						sqlite_orm::eq(&FrameState::frame_number, frameNumber)));
+	} catch (std::exception &e) {
+		perror("GetFrameStates");
+		perror(e.what());
+	}
+	return std::vector<FrameState>();
+}
+
+void Database::insertFrameState(FrameState &frameState) {
+	try {
+		database.insert(frameState);
+	} catch (std::exception &e) {
+		perror("InsertFrameState");
+		perror(e.what());
+	}
+}
+
+char *Database::interop_getFrameStates(int frameNumber) {
+	std::vector<FrameState> frameStates = getFrameStates(frameNumber);
+	std::vector<std::string> frameStateStrings;
+	for (auto frameState : frameStates) {
+		frameStateStrings.push_back(
+				std::to_string(frameState.frame_number) + "\t"
+						+ std::to_string(frameState.time) + "\t"
+						+ frameState.input + "\t" + frameState.state);
+	}
+	char *returnFrameStateStrings = nullptr;
+	int currentPosition = 0;
+	for (auto stateString : frameStateStrings) {
+		returnFrameStateStrings = (char *) std::realloc(returnFrameStateStrings,
+				sizeof(char) * (currentPosition + stateString.size() + 1));
+		std::strcpy(&returnFrameStateStrings[currentPosition],
+				stateString.c_str());
+		currentPosition += stateString.size() + 1;
+	}
+	returnFrameStateStrings = (char *) std::realloc(returnFrameStateStrings,
+			sizeof(char) * (currentPosition + 1));
+	returnFrameStateStrings[currentPosition] = '\0';
+	return returnFrameStateStrings;
+}
+
+void Database::interop_destroyFrameStates(char *frameStates) {
+	if (frameStates != 0) {
+		free(frameStates);
+	}
+}
+
+void Database::interop_insertFrameState(char *frameState) {
+	char internalFrameStateChar[std::strlen(frameState) + 1];
+	std::strcpy(internalFrameStateChar, frameState);
+	FrameState realFrameState;
+	char *pointer = std::strtok(internalFrameStateChar, "\t");
+	realFrameState.frame_number = std::strtod(frameState, 0);
+	pointer = std::strtok(0, "\t");
+	realFrameState.time = std::strtol(pointer, 0, 10);
+	pointer = std::strtok(0, "\t");
+	realFrameState.input = pointer;
+	pointer = std::strtok(0, "\t");
+	realFrameState.state = pointer;
+	database.insert(realFrameState);
+}

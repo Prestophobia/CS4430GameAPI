@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -43,6 +44,24 @@ int main(int argc, char *argv[]) {
 		Animations ganimators(gdata);
 		MenuHit gmenuHit(ganimators, gmenu);
 		GameHit ggameHit(ganimators);
+
+//		FrameState fs(0, 1, "a", "b");
+//		Database::insertFrameState(fs);
+//		Database::insertFrameState(fs);
+//		Database::insertFrameState(fs);
+//		fs.frame_number = 1;
+//		Database::insertFrameState(fs);
+//		Database::insertFrameState(fs);
+//
+//		fs.frame_number = 2;
+//		std::string fsString = std::to_string(fs.frame_number) + "\t"
+//				+ std::to_string(fs.time) + "\t" + fs.input + "\t" + fs.state;
+//		char fsChar[fsString.size() + 1];
+//		std::strcpy(fsChar, fsString.c_str());
+//		Database::interop_insertFrameState(fsChar);
+//		Database::interop_insertFrameState(fsChar);
+//		auto states = Database::interop_getFrameStates(2);
+//		Database::interop_destroyFrameStates(states);
 
 		// create the SFML window
 		sf::RenderWindow window(sf::VideoMode(gdata.w_szX, gdata.w_szY),

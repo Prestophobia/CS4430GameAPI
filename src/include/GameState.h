@@ -7,10 +7,10 @@
  * @details .
  */
 
-#include <string>
-
 #ifndef DATABASE_GAMESTATE_H_
 #define DATABASE_GAMESTATE_H_
+
+#include <string>
 
 class GameState {
 public:
@@ -23,7 +23,6 @@ public:
 	GameState(int id, std::string turn, double clock) :
 			id(id), turn(turn), clock(clock) {
 	}
-	;
 };
 
 #endif /* DATABASE_GAMESTATE_H_ */

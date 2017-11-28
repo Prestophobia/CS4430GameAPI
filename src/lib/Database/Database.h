@@ -14,6 +14,7 @@
 
 #include "include/CheckerPos.h"
 #include "include/GameState.h"
+#include "include/FrameState.h"
 #include "include/CheckerRecord.h"
 
 #ifdef __cplusplus
@@ -41,6 +42,13 @@ void updateGameState(GameState &state);
 CheckerRecord getCheckerRecord(int id);
 void insertCheckerRecord(CheckerRecord &checkerRecord);
 void updateCheckerRecord(CheckerRecord &checkerRecord);
+
+std::vector<FrameState> getFrameStates(int frameNumber);
+void insertFrameState(FrameState &frameState);
+
+char *interop_getFrameStates(int frameNumber);
+void interop_destroyFrameStates(char *frameStates);
+void interop_insertFrameState(char *frameState);
 
 bool initCheckerPositionsNew();
 
